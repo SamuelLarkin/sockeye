@@ -1193,7 +1193,9 @@ def train(args: argparse.Namespace, custom_metrics_logger: Optional[Callable] = 
         using_amp=args.amp,
         using_apex_amp=args.apex_amp,
         custom_metrics_logger=custom_metrics_logger,
-        checkpoint_callback=checkpoint_callback)
+        checkpoint_callback=checkpoint_callback,
+        from_pretrained_model=args.params is not None,
+    )
 
     # Only primary worker runs checkpoint decoder
     checkpoint_decoder = None

@@ -194,6 +194,7 @@ class EarlyStoppingTrainer:
                  using_apex_amp: bool = False,
                  custom_metrics_logger: Optional[Callable] = None,
                  checkpoint_callback: Optional[Callable] = None) -> None:
+        from_pretrained_model: bool = False,
         self.config = config
         self.optimizer_config = optimizer_config
         self.sockeye_model = sockeye_model
@@ -222,6 +223,7 @@ class EarlyStoppingTrainer:
         if utils.is_primary_worker() and self.config.early_stopping_metric in C.METRICS_REQUIRING_DECODER:
             utils.check_condition(checkpoint_decoder is not None,
                                   "%s requires CheckpointDecoder" % self.config.early_stopping_metric)
+        self.from_pretrained_model = from_pretrained_model
 
         resume_training = os.path.exists(self.training_state_dirname)
         if resume_training:
@@ -246,6 +248,21 @@ class EarlyStoppingTrainer:
                         self.config.checkpoint_interval,
                         self.config.max_updates,
                         self.config.max_checkpoints)
+
+        if self.from_pretrained_model and self.state.updates <= 1:
+            logger.info("")
+            train_metrics = [lf.metric for lf in self.loss_functions]
+            val_metrics = self._evaluate(
+                self.state.checkpoint, validation_iter, checkpoint_decoder
+            )
+
+            if utils.is_primary_worker():
+                temp = self.lr_scheduler
+                self.lr_scheduler = None
+                self._write_and_log_metrics(
+                    train_metrics=train_metrics, val_metrics=val_metrics
+                )
+                self.lr_scheduler = temp
 
         # At the start of training, the checkpoint is only up to date if it has
         # just been loaded (resuming training with an existing model directory).
