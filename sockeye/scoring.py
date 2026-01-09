@@ -17,7 +17,7 @@ Code for scoring.
 import logging
 import math
 import time
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch as pt

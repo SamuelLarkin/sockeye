@@ -340,7 +340,7 @@ def make_input_from_dict(sentence_id: SentenceId,
             source_prefix_factors = [list(utils.get_tokens(spf)) for spf in source_prefix_factors]
             for source_prefix_factor in source_prefix_factors:
                 if not source_prefix_factor:
-                    logger.warning(f"Empty list is specified as source prefix factors for input '%s'.",
+                    logger.warning("Empty list is specified as source prefix factors for input '%s'.",
                                    input_dict[C.JSON_TEXT_KEY])
             lengths = [len(source_prefix_factor) for source_prefix_factor in source_prefix_factors]
             if not all(len(source_prefix_tokens) == length for length in lengths):
@@ -1119,7 +1119,7 @@ class Translator:
         all_target_tokens = []  # type: List[List[str]]
         all_target_strings = []  # type: List[str]
         # Strip any position where primary factor token is to be stripped
-        pruned_target_ids = (tokens for tokens in target_ids if not tokens[0] in self.strip_ids)
+        pruned_target_ids = (tokens for tokens in target_ids if tokens[0] not in self.strip_ids)
         for factor_index, factor_sequence in enumerate(zip(*pruned_target_ids)):
             vocab_target_inv = self.vocab_targets_inv[factor_index]
             target_tokens = [vocab_target_inv[target_id] for target_id in factor_sequence]

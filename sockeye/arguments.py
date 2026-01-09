@@ -18,7 +18,7 @@ import argparse
 import os
 import sys
 import types
-from typing import Any, Callable, Dict, List, Tuple, Optional
+from typing import Callable, Optional
 
 import yaml
 

@@ -24,7 +24,6 @@ from abc import abstractmethod, ABC
 
 import numpy as np
 
-from sockeye.data_io import SequenceReader
 
 from . import arguments
 from . import constants as C

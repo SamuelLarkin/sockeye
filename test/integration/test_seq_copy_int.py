@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 import logging
 import os
-import platform
 import sys
 from tempfile import TemporaryDirectory
 from typing import List
@@ -25,7 +24,6 @@ import sockeye.average
 import sockeye.checkpoint_decoder
 import sockeye.evaluate
 from sockeye import constants as C
-from sockeye.config import Config
 from sockeye.model import load_model
 from sockeye.test_utils import run_train_translate, tmp_digits_dataset
 from test.common import check_train_translate

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from math import pow, sqrt
+from math import pow
 import numpy as np
 import pytest
 import torch as pt
@@ -23,7 +23,6 @@ from sockeye.knn import KNNConfig, FaissIndexBuilder
 
 # Only run certain tests in this file if faiss is installed
 try:
-    import faiss  # pylint: disable=E0401
     faiss_installed = True
 except:
     faiss_installed = False

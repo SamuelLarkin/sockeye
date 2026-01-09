@@ -22,7 +22,6 @@ import torch
 
 from sockeye import constants as C
 from sockeye import data_io
-from sockeye import utils
 from sockeye import vocab
 from sockeye.test_utils import tmp_digits_dataset
 from sockeye.utils import SockeyeError, get_tokens, seed_rngs

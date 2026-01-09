@@ -20,9 +20,9 @@ import logging
 import sys
 import time
 from contextlib import ExitStack
-from typing import Dict, Generator, List, Optional, Union
+from typing import Generator, List, Optional
 
-from sockeye.lexicon import load_restrict_lexicon, RestrictLexicon
+from sockeye.lexicon import load_restrict_lexicon
 from sockeye.log import setup_main_logger
 from sockeye.model import load_models
 from sockeye.output_handler import get_output_handler, OutputHandler

@@ -730,7 +730,6 @@ def check_import_faiss():
     global _faiss_checked
     if not _faiss_checked:
         try:
-            import faiss  # pylint: disable=E0401
             _faiss_checked = True
         except:
             raise RuntimeError('To run kNN-MT models, please install faiss by following '

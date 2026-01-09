@@ -16,7 +16,6 @@ import os
 import sys
 from tempfile import TemporaryDirectory
 
-import pytest
 
 from unittest.mock import patch
 

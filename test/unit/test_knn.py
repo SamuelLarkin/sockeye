@@ -25,7 +25,6 @@ from sockeye.vocab import build_vocab
 
 # Only run certain tests in this file if faiss is installed
 try:
-    import faiss  # pylint: disable=E0401
     faiss_installed = True
 except:
     faiss_installed = False
