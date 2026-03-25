@@ -479,16 +479,20 @@ def create_data_iters_and_vocabs(
         else:
             # Load or create vocabs
             source_factor_vocab_paths = [
-                args.source_factor_vocabs[i]
-                if i < len(args.source_factor_vocabs)
-                else None
+                (
+                    args.source_factor_vocabs[i]
+                    if i < len(args.source_factor_vocabs)
+                    else None
+                )
                 for i in range(len(args.source_factors))
             ]
             source_vocab_paths = [args.source_vocab] + source_factor_vocab_paths
             target_factor_vocab_paths = [
-                args.target_factor_vocabs[i]
-                if i < len(args.target_factor_vocabs)
-                else None
+                (
+                    args.target_factor_vocabs[i]
+                    if i < len(args.target_factor_vocabs)
+                    else None
+                )
                 for i in range(len(args.target_factors))
             ]
             target_vocab_paths = [args.target_vocab] + target_factor_vocab_paths
@@ -1506,7 +1510,7 @@ def train(
         # compatibility with tracing. See:
         # https://github.com/pytorch/pytorch/pull/63552
         with (
-            torch.cuda.amp.autocast(cache_enabled=False)
+            torch.amp.autocast(device_type=device.type, cache_enabled=False)
             if args.amp
             else utils.no_context()
         ):  # type: ignore
@@ -1529,7 +1533,9 @@ def train(
         )
 
     # Wrap training model and losses in a single module
-    model_object = training.ModelWithLoss(model=training_model, losses=losses)  # type: torch.nn.Module
+    model_object = training.ModelWithLoss(
+        model=training_model, losses=losses
+    )  # type: torch.nn.Module
 
     if utils.using_deepspeed():
         # Wrap the model object with a DeepSpeed engine that automatically
