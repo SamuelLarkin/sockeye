@@ -42,10 +42,7 @@ class NumpyMemmapStorage:
     :param dtype: data type of the vectors in the data store
     """
 
-    def __init__(self,
-                 file_name: str,
-                 num_dim: int,
-                 dtype: np.dtype) -> None:
+    def __init__(self, file_name: str, num_dim: int, dtype: np.dtype) -> None:
         self.file_name = file_name
         self.num_dim = num_dim  # dimension of a single entry
         self.dtype = dtype
@@ -56,7 +53,12 @@ class NumpyMemmapStorage:
 
     def open(self, initial_size: int, block_size: int) -> None:
         """Create a memmap handle and initialize its sizes."""
-        self.mmap = np.memmap(self.file_name, dtype=self.dtype, mode='w+', shape=(initial_size, self.num_dim))
+        self.mmap = np.memmap(
+            self.file_name,
+            dtype=self.dtype,
+            mode="w+",
+            shape=(initial_size, self.num_dim),
+        )
         self.size = initial_size
         self.block_size = block_size
 
@@ -75,8 +77,8 @@ class NumpyMemmapStorage:
         if self.tail_idx + num_entries > self.size:
             # bail out
             logger.warning(
-                f"Trying to write {num_entries} entries into a numpy memmap that " + \
-                f"has size {self.size} and already has {self.tail_idx} entries. Nothing is written."
+                f"Trying to write {num_entries} entries into a numpy memmap that "
+                + f"has size {self.size} and already has {self.tail_idx} entries. Nothing is written."
             )
         else:
             start = self.tail_idx
@@ -101,16 +103,18 @@ class DecoderStateGenerator:
     :param device: device (cpu/gpu) for decoding.
     """
 
-    def __init__(self,
-                 model: SockeyeModel,
-                 source_vocabs: List[Vocab],
-                 target_vocabs: List[Vocab],
-                 output_dir: str,
-                 max_seq_len_source: int,
-                 max_seq_len_target: int,
-                 state_data_type: str,
-                 word_data_type: str,
-                 device: pt.device) -> None:
+    def __init__(
+        self,
+        model: SockeyeModel,
+        source_vocabs: List[Vocab],
+        target_vocabs: List[Vocab],
+        output_dir: str,
+        max_seq_len_source: int,
+        max_seq_len_target: int,
+        state_data_type: str,
+        word_data_type: str,
+        device: pt.device,
+    ) -> None:
         self.model = model
         self.source_vocabs = source_vocabs
         self.target_vocabs = target_vocabs
@@ -133,7 +137,7 @@ class DecoderStateGenerator:
     def probe_token_count(target_path: str, max_seq_len: int) -> int:
         """Count the number of tokens in the file at `target_path`, with each line truncated at `max_seq_len`."""
         token_count = 0
-        with open(target_path, 'r') as f:
+        with open(target_path, "r") as f:
             for line in f:
                 token_count += min(len(line.split()) + 1, max_seq_len)  # +1 for EOS
         return token_count
@@ -142,18 +146,22 @@ class DecoderStateGenerator:
         """Initialize the memory map files."""
         self.dimension = self.model.config.config_decoder.model_size
 
-        self.state_store_file = NumpyMemmapStorage(get_state_store_path(self.output_dir),
-                                                   self.dimension, self.state_data_type)
-        self.words_store_file = NumpyMemmapStorage(get_word_store_path(self.output_dir),
-                                                   1, self.word_data_type)  # dim=1 because it's just scalar word index
+        self.state_store_file = NumpyMemmapStorage(
+            get_state_store_path(self.output_dir), self.dimension, self.state_data_type
+        )
+        self.words_store_file = NumpyMemmapStorage(
+            get_word_store_path(self.output_dir), 1, self.word_data_type
+        )  # dim=1 because it's just scalar word index
         self.state_store_file.open(initial_size, 1)
         self.words_store_file.open(initial_size, 1)
 
-    def generate_states_and_store(self,
-                                  sources: List[str],
-                                  targets: List[str],
-                                  batch_size: int,
-                                  eop_id: int = C.INVALID_ID) -> None:
+    def generate_states_and_store(
+        self,
+        sources: List[str],
+        targets: List[str],
+        batch_size: int,
+        eop_id: int = C.INVALID_ID,
+    ) -> None:
         """
         Generate decoder states by force-decoding the sentence pairs in `sources` and `targets` with a NMT model.
 
@@ -162,8 +170,9 @@ class DecoderStateGenerator:
         :param batch_size: number of sentence pairs to decode at once.
         :param eop_id: End-of-prepending tag id.
         """
-        assert self.state_store_file != None, \
-               "You should call probe_token_count first to initialize the store files."
+        assert self.state_store_file != None, (
+            "You should call probe_token_count first to initialize the store files."
+        )
 
         # get data iter
         data_iter = data_io.get_scoring_data_iters(
@@ -174,7 +183,7 @@ class DecoderStateGenerator:
             batch_size=batch_size,
             max_seq_len_source=self.max_seq_len_source,
             max_seq_len_target=self.max_seq_len_target,
-            eop_id=eop_id
+            eop_id=eop_id,
         )
 
         with pt.inference_mode():
@@ -184,15 +193,24 @@ class DecoderStateGenerator:
 
                 # get decoder states
                 batch = batch.load(self.device)
-                model_inputs = (batch.source, batch.source_length, batch.target, batch.target_length)
+                model_inputs = (
+                    batch.source,
+                    batch.source_length,
+                    batch.target,
+                    batch.target_length,
+                )
                 if self.traced_model is None:
-                    trace_inputs = {'get_decoder_states': model_inputs}
-                    self.traced_model = pt.jit.trace_module(self.model, trace_inputs, strict=False)
+                    trace_inputs = {"get_decoder_states": model_inputs}
+                    self.traced_model = pt.jit.trace_module(
+                        self.model, trace_inputs, strict=False
+                    )
                 # shape: (batch, seq_len, hidden_dim)
                 decoder_states = self.traced_model.get_decoder_states(*model_inputs)  # type: ignore
 
                 # flatten batch and seq_len dimensions, remove pads on the target
-                pad_mask = (batch.target != C.PAD_ID)[:, :, 0]  # shape: (batch, seq_len)
+                pad_mask = (batch.target != C.PAD_ID)[
+                    :, :, 0
+                ]  # shape: (batch, seq_len)
                 flat_target = batch.target[pad_mask].cpu().detach().numpy()
                 flat_states = decoder_states[pad_mask].cpu().detach().numpy()
 
@@ -222,26 +240,34 @@ def store(args: argparse.Namespace):
     if not pt.cuda.is_available():
         logger.info("CUDA not available, using cpu")
         use_cpu = True
-    device = pt.device('cpu') if use_cpu else pt.device('cuda', args.device_id)
+    device = pt.device("cpu") if use_cpu else pt.device("cuda", args.device_id)
     logger.info(f"Scoring device: {device}")
 
-    model, source_vocabs, target_vocabs = load_model(args.model, device=device, dtype=args.dtype)
+    model, source_vocabs, target_vocabs = load_model(
+        args.model, device=device, dtype=args.dtype
+    )
     model.eval()
 
     max_seq_len_source = model.max_supported_len_source
     max_seq_len_target = model.max_supported_len_target
     if args.max_seq_len is not None:
-        max_seq_len_source = min(args.max_seq_len[0] + C.SPACE_FOR_XOS, max_seq_len_source)
-        max_seq_len_target = min(args.max_seq_len[1] + C.SPACE_FOR_XOS, max_seq_len_target)
+        max_seq_len_source = min(
+            args.max_seq_len[0] + C.SPACE_FOR_XOS, max_seq_len_source
+        )
+        max_seq_len_target = min(
+            args.max_seq_len[1] + C.SPACE_FOR_XOS, max_seq_len_target
+        )
 
     sources = [args.source] + args.source_factors
     sources = [str(os.path.abspath(source)) for source in sources]
     targets = [args.target] + args.target_factors
     targets = [str(os.path.abspath(target)) for target in targets]
 
-    check_condition(len(targets) == model.num_target_factors,
-                    "Number of target inputs/factors provided (%d) does not match number of target factors "
-                    "required by the model (%d)" % (len(targets), model.num_target_factors))
+    check_condition(
+        len(targets) == model.num_target_factors,
+        "Number of target inputs/factors provided (%d) does not match number of target factors "
+        "required by the model (%d)" % (len(targets), model.num_target_factors),
+    )
 
     # if state data type is None, use inferred data type
     if args.state_dtype is None:
@@ -252,10 +278,20 @@ def store(args: argparse.Namespace):
     elif os.path.isfile(args.output_dir):
         logging.error(f"{args.output_dir} already exists as a file")
 
-    generator = DecoderStateGenerator(model, source_vocabs, target_vocabs, args.output_dir,
-                                      max_seq_len_source, max_seq_len_target,
-                                      args.state_dtype, C.KNN_WORD_DATA_STORE_DTYPE, device)
-    generator.num_states = DecoderStateGenerator.probe_token_count(targets[0], max_seq_len_target)
+    generator = DecoderStateGenerator(
+        model,
+        source_vocabs,
+        target_vocabs,
+        args.output_dir,
+        max_seq_len_source,
+        max_seq_len_target,
+        args.state_dtype,
+        C.KNN_WORD_DATA_STORE_DTYPE,
+        device,
+    )
+    generator.num_states = DecoderStateGenerator.probe_token_count(
+        targets[0], max_seq_len_target
+    )
     generator.init_store_file(generator.num_states)
     generator.generate_states_and_store(sources, targets, args.batch_size, model.eop_id)
     generator.save_config()
@@ -263,16 +299,17 @@ def store(args: argparse.Namespace):
 
 def main():
     params = arguments.ConfigArgumentParser(
-        description='CLI to generate decoder states from parallel data with a trained model, '
-                    'and build a data store from it.'
+        description="CLI to generate decoder states from parallel data with a trained model, "
+        "and build a data store from it."
     )
     arguments.add_state_generation_args(params)
     args = params.parse_args()
-    check_condition(args.batch_type == C.BATCH_TYPE_SENTENCE, "Batching by number of words is not supported")
+    check_condition(
+        args.batch_type == C.BATCH_TYPE_SENTENCE,
+        "Batching by number of words is not supported",
+    )
 
-    setup_main_logger(file_logging=False,
-                      console=not args.quiet,
-                      level=args.loglevel)  # pylint: disable=no-member
+    setup_main_logger(file_logging=False, console=not args.quiet, level=args.loglevel)  # pylint: disable=no-member
 
     utils.log_basic_info(args)
     if args.end_of_prepending_tag is not None:

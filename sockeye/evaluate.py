@@ -14,6 +14,7 @@
 """
 Evaluation CLI.
 """
+
 import argparse
 import logging
 import sys
@@ -34,11 +35,14 @@ from .log import setup_main_logger, log_sockeye_version
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_OFFSET = sacrebleu.BLEU.SMOOTH_DEFAULTS['floor']  # 0.1
+DEFAULT_OFFSET = sacrebleu.BLEU.SMOOTH_DEFAULTS["floor"]  # 0.1
 
 
-def raw_corpus_bleu(hypotheses: Iterable[str], references: Iterable[str],
-                    offset: Optional[float] = DEFAULT_OFFSET) -> float:
+def raw_corpus_bleu(
+    hypotheses: Iterable[str],
+    references: Iterable[str],
+    offset: Optional[float] = DEFAULT_OFFSET,
+) -> float:
     """
     Simple wrapper around sacreBLEU's BLEU without tokenization and floor smoothing.
 
@@ -47,7 +51,10 @@ def raw_corpus_bleu(hypotheses: Iterable[str], references: Iterable[str],
     :param offset: Smoothing constant.
     :return: BLEU score as float between 0 and 1.
     """
-    return sacrebleu.raw_corpus_bleu(hypotheses, [references], smooth_value=offset).score / 100.0  # type: ignore
+    return (
+        sacrebleu.raw_corpus_bleu(hypotheses, [references], smooth_value=offset).score
+        / 100.0
+    )  # type: ignore
 
 
 def raw_corpus_chrf(hypotheses: Iterable[str], references: Iterable[str]) -> float:
@@ -106,7 +113,9 @@ def raw_corpus_rougel(hypotheses: Iterable[str], references: Iterable[str]) -> f
     return rouge.rouge_l(hypotheses, references)
 
 
-def raw_corpus_length_ratio(hypotheses: Iterable[str], references: Iterable[str]) -> float:
+def raw_corpus_length_ratio(
+    hypotheses: Iterable[str], references: Iterable[str]
+) -> float:
     """
     Simple wrapper around length ratio implementation.
 
@@ -114,14 +123,16 @@ def raw_corpus_length_ratio(hypotheses: Iterable[str], references: Iterable[str]
     :param references: Reference stream.
     :return: Length ratio score as float.
     """
-    ratios = [len(h.split())/len(r.split()) for h, r in zip(hypotheses, references)]
-    return sum(ratios)/len(ratios) if len(ratios) else 0.0
+    ratios = [len(h.split()) / len(r.split()) for h, r in zip(hypotheses, references)]
+    return sum(ratios) / len(ratios) if len(ratios) else 0.0
 
 
 def main():
-    params = argparse.ArgumentParser(description='Evaluate translations by calculating metrics with '
-                                                 'respect to a reference set. If multiple hypotheses files are given '
-                                                 'the mean and standard deviation of the metrics are reported.')
+    params = argparse.ArgumentParser(
+        description="Evaluate translations by calculating metrics with "
+        "respect to a reference set. If multiple hypotheses files are given "
+        "the mean and standard deviation of the metrics are reported."
+    )
     arguments.add_evaluate_args(params)
     arguments.add_logging_args(params)
     args = params.parse_args()
@@ -136,15 +147,21 @@ def main():
     logger.info("Command: %s", " ".join(sys.argv))
     logger.info("Arguments: %s", args)
 
-    references = [' '.join(e) for e in data_io.read_content(args.references)]
+    references = [" ".join(e) for e in data_io.read_content(args.references)]
     all_hypotheses = [[h.strip() for h in hypotheses] for hypotheses in args.hypotheses]
     if not args.not_strict:
         for hypotheses in all_hypotheses:
-            utils.check_condition(len(hypotheses) == len(references),
-                                  "Number of hypotheses (%d) and references (%d) does not match." % (len(hypotheses),
-                                                                                                     len(references)))
-    logger.info("%d hypothesis set(s) | %d hypotheses | %d references",
-                len(all_hypotheses), len(all_hypotheses[0]), len(references))
+            utils.check_condition(
+                len(hypotheses) == len(references),
+                "Number of hypotheses (%d) and references (%d) does not match."
+                % (len(hypotheses), len(references)),
+            )
+    logger.info(
+        "%d hypothesis set(s) | %d hypotheses | %d references",
+        len(all_hypotheses),
+        len(all_hypotheses[0]),
+        len(references),
+    )
 
     metric_info = ["%s\t(s_opt)" % name for name in args.metrics]
     logger.info("\t".join(metric_info))
@@ -182,7 +199,9 @@ def main():
                 _print_mean_std_score(metrics, scores)
 
 
-def _print_mean_std_score(metrics: List[Tuple[str, Callable]], scores: Dict[str, List[float]]):
+def _print_mean_std_score(
+    metrics: List[Tuple[str, Callable]], scores: Dict[str, List[float]]
+):
     scores_mean_std = []  # type: List[str]
     for name, _ in metrics:
         if len(scores[name]) > 1:
@@ -195,5 +214,5 @@ def _print_mean_std_score(metrics: List[Tuple[str, Callable]], scores: Dict[str,
     print("\t".join(scores_mean_std))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

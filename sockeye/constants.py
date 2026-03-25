@@ -14,6 +14,7 @@
 """
 Defines various constants used throughout the project
 """
+
 import torch as pt
 import numpy as np
 
@@ -51,12 +52,14 @@ SOURCE_EMBEDDING_PREFIX = "embedding_source"
 TARGET_EMBEDDING_PREFIX = "embedding_target"
 
 # source factors
-FACTORS_COMBINE_SUM = 'sum'
-FACTORS_COMBINE_AVERAGE = 'average'
-FACTORS_COMBINE_CONCAT = 'concat'
-FACTORS_COMBINE_CHOICES = [FACTORS_COMBINE_SUM,
-                           FACTORS_COMBINE_AVERAGE,
-                           FACTORS_COMBINE_CONCAT]
+FACTORS_COMBINE_SUM = "sum"
+FACTORS_COMBINE_AVERAGE = "average"
+FACTORS_COMBINE_CONCAT = "concat"
+FACTORS_COMBINE_CHOICES = [
+    FACTORS_COMBINE_SUM,
+    FACTORS_COMBINE_AVERAGE,
+    FACTORS_COMBINE_CONCAT,
+]
 
 # encoder names (arguments)
 TRANSFORMER_TYPE = "transformer"
@@ -73,20 +76,29 @@ DECODERS = [TRANSFORMER_TYPE, SSRU_TRANSFORMER]
 NO_POSITIONAL_EMBEDDING = "none"
 FIXED_POSITIONAL_EMBEDDING = "fixed"
 LEARNED_POSITIONAL_EMBEDDING = "learned"
-POSITIONAL_EMBEDDING_TYPES = [NO_POSITIONAL_EMBEDDING, FIXED_POSITIONAL_EMBEDDING, LEARNED_POSITIONAL_EMBEDDING]
+POSITIONAL_EMBEDDING_TYPES = [
+    NO_POSITIONAL_EMBEDDING,
+    FIXED_POSITIONAL_EMBEDDING,
+    LEARNED_POSITIONAL_EMBEDDING,
+]
 
 DEFAULT_NUM_EMBED = 512
 
 # weight tying components
-WEIGHT_TYING_SRC = 'src'
-WEIGHT_TYING_TRG = 'trg'
-WEIGHT_TYING_SOFTMAX = 'softmax'
+WEIGHT_TYING_SRC = "src"
+WEIGHT_TYING_TRG = "trg"
+WEIGHT_TYING_SOFTMAX = "softmax"
 # weight tying types (combinations of above components):
-WEIGHT_TYING_NONE = 'none'
-WEIGHT_TYING_TRG_SOFTMAX = 'trg_softmax'
-WEIGHT_TYING_SRC_TRG = 'src_trg'
-WEIGHT_TYING_SRC_TRG_SOFTMAX = 'src_trg_softmax'
-WEIGHT_TYING_TYPES = [WEIGHT_TYING_NONE, WEIGHT_TYING_SRC_TRG_SOFTMAX, WEIGHT_TYING_SRC_TRG, WEIGHT_TYING_TRG_SOFTMAX]
+WEIGHT_TYING_NONE = "none"
+WEIGHT_TYING_TRG_SOFTMAX = "trg_softmax"
+WEIGHT_TYING_SRC_TRG = "src_trg"
+WEIGHT_TYING_SRC_TRG_SOFTMAX = "src_trg_softmax"
+WEIGHT_TYING_TYPES = [
+    WEIGHT_TYING_NONE,
+    WEIGHT_TYING_SRC_TRG_SOFTMAX,
+    WEIGHT_TYING_SRC_TRG,
+    WEIGHT_TYING_TRG_SOFTMAX,
+]
 
 NVS_TYPE_LOGIT_MAX = "logit_max"
 NVS_TYPE_EOS = "eos"
@@ -118,14 +130,14 @@ DEFAULT_BEAM_SIZE = 5
 DEFAULT_NBEST_SIZE = 1
 CHUNK_SIZE_NO_BATCHING = 1
 CHUNK_SIZE_PER_BATCH_SEGMENT = 500
-BEAM_SEARCH_STOP_FIRST = 'first'
-BEAM_SEARCH_STOP_ALL = 'all'
+BEAM_SEARCH_STOP_FIRST = "first"
+BEAM_SEARCH_STOP_ALL = "all"
 
 # State structure constants
-STEP_STATE = 's'
-MASK_STATE = 'm'
-ENCODER_STATE = 'e'
-DECODER_STATE = 'd'
+STEP_STATE = "s"
+MASK_STATE = "m"
+ENCODER_STATE = "e"
+DECODER_STATE = "d"
 
 # Inference Input JSON constants
 JSON_TEXT_KEY = "text"
@@ -180,9 +192,27 @@ TRAINING_STATE_PARAMS_NAME = "params"
 ARGS_STATE_NAME = "args.yaml"
 
 # Arguments that may differ and still resume training
-ARGS_MAY_DIFFER = ["device_id", "device_ids", "overwrite_output", "use_tensorboard", "quiet", "align_plot_prefix",
-                   "sure_align_threshold", "keep_last_params", "seed", "max_updates", "min_updates", "max_num_epochs",
-                   "min_num_epochs", "max_samples", "min_samples", "max_checkpoints", "max_seconds", "local_rank", "tf32"]
+ARGS_MAY_DIFFER = [
+    "device_id",
+    "device_ids",
+    "overwrite_output",
+    "use_tensorboard",
+    "quiet",
+    "align_plot_prefix",
+    "sure_align_threshold",
+    "keep_last_params",
+    "seed",
+    "max_updates",
+    "min_updates",
+    "max_num_epochs",
+    "min_num_epochs",
+    "max_samples",
+    "min_samples",
+    "max_checkpoints",
+    "max_seconds",
+    "local_rank",
+    "tf32",
+]
 
 # Other argument constants
 TRAINING_ARG_SOURCE = "--source"
@@ -203,7 +233,7 @@ TRAIN_ARGS_CHECKPOINT_INTERVAL = "--checkpoint-interval"
 TRAIN_ARGS_STOP_ON_DECODER_FAILURE = "--stop-training-on-decoder-failure"
 
 # Used to delimit factors on STDIN for inference
-DEFAULT_FACTOR_DELIMITER = '|'
+DEFAULT_FACTOR_DELIMITER = "|"
 
 BATCH_TYPE_SENTENCE = "sentence"
 BATCH_TYPE_WORD = "word"
@@ -215,22 +245,28 @@ OPTIMIZER_ADAM = "adam"
 OPTIMIZER_SGD = "sgd"
 OPTIMIZERS = [OPTIMIZER_ADAM, OPTIMIZER_SGD]
 
-LR_SCHEDULER_NONE = 'none'
-LR_SCHEDULER_INV_SQRT_DECAY = 'inv-sqrt-decay'
-LR_SCHEDULER_LINEAR_DECAY = 'linear-decay'
-LR_SCHEDULER_PLATEAU_REDUCE = 'plateau-reduce'
-LR_SCHEDULERS = [LR_SCHEDULER_NONE,
-                 LR_SCHEDULER_INV_SQRT_DECAY,
-                 LR_SCHEDULER_LINEAR_DECAY,
-                 LR_SCHEDULER_PLATEAU_REDUCE]
+LR_SCHEDULER_NONE = "none"
+LR_SCHEDULER_INV_SQRT_DECAY = "inv-sqrt-decay"
+LR_SCHEDULER_LINEAR_DECAY = "linear-decay"
+LR_SCHEDULER_PLATEAU_REDUCE = "plateau-reduce"
+LR_SCHEDULERS = [
+    LR_SCHEDULER_NONE,
+    LR_SCHEDULER_INV_SQRT_DECAY,
+    LR_SCHEDULER_LINEAR_DECAY,
+    LR_SCHEDULER_PLATEAU_REDUCE,
+]
 
-GRADIENT_CLIPPING_TYPE_ABS = 'abs'
-GRADIENT_CLIPPING_TYPE_NORM = 'norm'
-GRADIENT_CLIPPING_TYPE_NONE = 'none'
-GRADIENT_CLIPPING_TYPES = [GRADIENT_CLIPPING_TYPE_ABS, GRADIENT_CLIPPING_TYPE_NORM, GRADIENT_CLIPPING_TYPE_NONE]
+GRADIENT_CLIPPING_TYPE_ABS = "abs"
+GRADIENT_CLIPPING_TYPE_NORM = "norm"
+GRADIENT_CLIPPING_TYPE_NONE = "none"
+GRADIENT_CLIPPING_TYPES = [
+    GRADIENT_CLIPPING_TYPE_ABS,
+    GRADIENT_CLIPPING_TYPE_NORM,
+    GRADIENT_CLIPPING_TYPE_NONE,
+]
 
-DIST_ENV_LOCAL_RANK = 'LOCAL_RANK'
-DIST_SECONDARY_WORKERS_LOGDIR = 'secondary_worker_logs'
+DIST_ENV_LOCAL_RANK = "LOCAL_RANK"
+DIST_SECONDARY_WORKERS_LOGDIR = "secondary_worker_logs"
 
 # output handler
 OUTPUT_HANDLER_TRANSLATION = "translation"
@@ -240,74 +276,88 @@ OUTPUT_HANDLER_PAIR_WITH_SCORE = "pair_with_score"
 OUTPUT_HANDLER_BENCHMARK = "benchmark"
 OUTPUT_HANDLER_JSON = "json"
 OUTPUT_HANDLER_TRANSLATION_WITH_FACTORS = "translation_with_factors"
-OUTPUT_HANDLERS = [OUTPUT_HANDLER_TRANSLATION,
-                   OUTPUT_HANDLER_SCORE,
-                   OUTPUT_HANDLER_TRANSLATION_WITH_SCORE,
-                   OUTPUT_HANDLER_TRANSLATION_WITH_FACTORS,
-                   OUTPUT_HANDLER_BENCHMARK,
-                   OUTPUT_HANDLER_JSON]
-OUTPUT_HANDLERS_SCORING = [OUTPUT_HANDLER_SCORE,
-                           OUTPUT_HANDLER_PAIR_WITH_SCORE]
+OUTPUT_HANDLERS = [
+    OUTPUT_HANDLER_TRANSLATION,
+    OUTPUT_HANDLER_SCORE,
+    OUTPUT_HANDLER_TRANSLATION_WITH_SCORE,
+    OUTPUT_HANDLER_TRANSLATION_WITH_FACTORS,
+    OUTPUT_HANDLER_BENCHMARK,
+    OUTPUT_HANDLER_JSON,
+]
+OUTPUT_HANDLERS_SCORING = [OUTPUT_HANDLER_SCORE, OUTPUT_HANDLER_PAIR_WITH_SCORE]
 
 # metrics
-ACCURACY = 'accuracy'
-PERPLEXITY = 'perplexity'
-PERPLEXITY_SHORT_NAME = 'ppl'
-LENRATIO_MSE = 'length-ratio-mse'
-BLEU = 'bleu'
-CHRF = 'chrf'
-ROUGE1 = 'rouge1'
-ROUGE2 = 'rouge2'
-ROUGEL = 'rougel'
-BOW_PERPLEXITY = 'bow-perplexity'
-TER = 'ter'
-LENRATIO = 'length-ratio-mse'
+ACCURACY = "accuracy"
+PERPLEXITY = "perplexity"
+PERPLEXITY_SHORT_NAME = "ppl"
+LENRATIO_MSE = "length-ratio-mse"
+BLEU = "bleu"
+CHRF = "chrf"
+ROUGE1 = "rouge1"
+ROUGE2 = "rouge2"
+ROUGEL = "rougel"
+BOW_PERPLEXITY = "bow-perplexity"
+TER = "ter"
+LENRATIO = "length-ratio-mse"
 AVG_TIME = "avg-sec-per-sent"
 DECODING_TIME = "decode-walltime"
 METRICS = [PERPLEXITY, ACCURACY, LENRATIO_MSE, BLEU, CHRF, ROUGE1, BOW_PERPLEXITY, TER]
-METRIC_MAXIMIZE = {ACCURACY: True, BLEU: True, CHRF: True, ROUGE1: True, PERPLEXITY: False, LENRATIO_MSE: False,
-                   TER: False, BOW_PERPLEXITY: False}
-METRIC_WORST = {ACCURACY: 0.0, BLEU: 0.0, CHRF: 0.0, ROUGE1: 0.0, PERPLEXITY: np.inf, BOW_PERPLEXITY: np.inf, TER: np.inf}
+METRIC_MAXIMIZE = {
+    ACCURACY: True,
+    BLEU: True,
+    CHRF: True,
+    ROUGE1: True,
+    PERPLEXITY: False,
+    LENRATIO_MSE: False,
+    TER: False,
+    BOW_PERPLEXITY: False,
+}
+METRIC_WORST = {
+    ACCURACY: 0.0,
+    BLEU: 0.0,
+    CHRF: 0.0,
+    ROUGE1: 0.0,
+    PERPLEXITY: np.inf,
+    BOW_PERPLEXITY: np.inf,
+    TER: np.inf,
+}
 METRICS_REQUIRING_DECODER = [BLEU, CHRF, ROUGE1, ROUGE2, ROUGEL, TER]
 EVALUATE_METRICS = [BLEU, CHRF, ROUGE1, ROUGE2, ROUGEL, TER]
 
 # loss
-CROSS_ENTROPY = 'cross-entropy'
-BINARY_CROSS_ENTROPY = 'binary-cross-entropy'
-LINK_NORMAL = 'normal'
-LINK_POISSON = 'poisson'
-LENGTH_TASK_RATIO = 'ratio'
-LENGTH_TASK_LENGTH = 'length'
+CROSS_ENTROPY = "cross-entropy"
+BINARY_CROSS_ENTROPY = "binary-cross-entropy"
+LINK_NORMAL = "normal"
+LINK_POISSON = "poisson"
+LENGTH_TASK_RATIO = "ratio"
+LENGTH_TASK_LENGTH = "length"
 
 TARGET_MAX_LENGTH_FACTOR = 2
 DEFAULT_NUM_STD_MAX_OUTPUT_LENGTH = 2
 
-DTYPE_BF16 = 'bfloat16'
-DTYPE_FP16 = 'float16'
-DTYPE_FP32 = 'float32'
-DTYPE_INT8 = 'int8'
-DTYPE_INT16 = 'int16'
-DTYPE_INT32 = 'int32'
-LARGE_POSITIVE_VALUE = 99999999.
+DTYPE_BF16 = "bfloat16"
+DTYPE_FP16 = "float16"
+DTYPE_FP32 = "float32"
+DTYPE_INT8 = "int8"
+DTYPE_INT16 = "int16"
+DTYPE_INT32 = "int32"
+LARGE_POSITIVE_VALUE = 99999999.0
 LARGE_VALUES = {
     # Rounds to 1.0014e+08
     # https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#Range_and_precision
     DTYPE_BF16: LARGE_POSITIVE_VALUE,
     pt.bfloat16: LARGE_POSITIVE_VALUE,
-
     # Something at the middle of 32768<x<65519. Will be rounded to a multiple of 32.
     # https://en.wikipedia.org/wiki/Half-precision_floating-point_format#Precision_limitations_on_integer_values
     DTYPE_FP16: 49152.0,
     np.float16: 49152.0,
     pt.float16: 49152.0,
-
     # Will be rounded to 1.0e8.
     # https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Precision_limitations_on_integer_values
     DTYPE_FP32: LARGE_POSITIVE_VALUE,
     np.float32: LARGE_POSITIVE_VALUE,
     pt.float32: LARGE_POSITIVE_VALUE,
     # with --tf32, rounds to 0b1011111011 * 1024 * 128 (10 bits precision) = 1.00007e8
-
     # Rounds to 1.0014e+08
     DTYPE_BF16: LARGE_POSITIVE_VALUE,
     pt.bfloat16: LARGE_POSITIVE_VALUE,
@@ -326,20 +376,24 @@ FIXED_PARAM_STRATEGY_ALL_EXCEPT_EMBEDDINGS = "all_except_embeddings"
 FIXED_PARAM_STRATEGY_ALL_EXCEPT_OUTPUT_PROJ = "all_except_output_proj"
 FIXED_PARAM_STRATEGY_ALL_EXCEPT_FEED_FORWARD = "all_except_feed_forward"
 FIXED_PARAM_STRATEGY_ENCODER_AND_SOURCE_EMBEDDINGS = "encoder_and_source_embeddings"
-FIXED_PARAM_STRATEGY_ENCODER_HALF_AND_SOURCE_EMBEDDINGS = "encoder_half_and_source_embeddings"
+FIXED_PARAM_STRATEGY_ENCODER_HALF_AND_SOURCE_EMBEDDINGS = (
+    "encoder_half_and_source_embeddings"
+)
 
-FIXED_PARAM_STRATEGY_CHOICES = [FIXED_PARAM_STRATEGY_ALL_EXCEPT_DECODER,
-                                FIXED_PARAM_STRATEGY_ALL_EXCEPT_OUTER_LAYERS,
-                                FIXED_PARAM_STRATEGY_ALL_EXCEPT_EMBEDDINGS,
-                                FIXED_PARAM_STRATEGY_ALL_EXCEPT_OUTPUT_PROJ,
-                                FIXED_PARAM_STRATEGY_ALL_EXCEPT_FEED_FORWARD,
-                                FIXED_PARAM_STRATEGY_ENCODER_AND_SOURCE_EMBEDDINGS,
-                                FIXED_PARAM_STRATEGY_ENCODER_HALF_AND_SOURCE_EMBEDDINGS]
+FIXED_PARAM_STRATEGY_CHOICES = [
+    FIXED_PARAM_STRATEGY_ALL_EXCEPT_DECODER,
+    FIXED_PARAM_STRATEGY_ALL_EXCEPT_OUTER_LAYERS,
+    FIXED_PARAM_STRATEGY_ALL_EXCEPT_EMBEDDINGS,
+    FIXED_PARAM_STRATEGY_ALL_EXCEPT_OUTPUT_PROJ,
+    FIXED_PARAM_STRATEGY_ALL_EXCEPT_FEED_FORWARD,
+    FIXED_PARAM_STRATEGY_ENCODER_AND_SOURCE_EMBEDDINGS,
+    FIXED_PARAM_STRATEGY_ENCODER_HALF_AND_SOURCE_EMBEDDINGS,
+]
 
 # data sharding
-DATA_KEY_SOURCE = 'source'
-DATA_KEY_TARGET = 'target'
-DATA_KEY_PREPENDED_SOURCE_LENGTH = 'prepended_source_length'
+DATA_KEY_SOURCE = "source"
+DATA_KEY_TARGET = "target"
+DATA_KEY_PREPENDED_SOURCE_LENGTH = "prepended_source_length"
 SHARD_NAME = "shard.%05d"
 SHARD_SOURCE = SHARD_NAME + ".source"
 SHARD_TARGET = SHARD_NAME + ".target"
@@ -357,12 +411,17 @@ RERANK_ISOMETRIC = "isometric"
 RERANK_ISOMETRIC_RATIO = RERANK_ISOMETRIC + "-ratio"
 RERANK_ISOMETRIC_DIFF = RERANK_ISOMETRIC + "-diff"
 RERANK_ISOMETRIC_LC = RERANK_ISOMETRIC + "-lc"
-RERANK_METRICS = [RERANK_BLEU, RERANK_CHRF,
-                  RERANK_ISOMETRIC_RATIO, RERANK_ISOMETRIC_DIFF, RERANK_ISOMETRIC_LC]
+RERANK_METRICS = [
+    RERANK_BLEU,
+    RERANK_CHRF,
+    RERANK_ISOMETRIC_RATIO,
+    RERANK_ISOMETRIC_DIFF,
+    RERANK_ISOMETRIC_LC,
+]
 
 # token segmentation symbols
 TOKEN_SEGMENTATION_SW = "@@"  # sub-word nmt
-TOKEN_SEGMENTATION_SP = "▁"   # sentence piece
+TOKEN_SEGMENTATION_SP = "▁"  # sentence piece
 TOKEN_SEGMENTATION_MARKERS = [TOKEN_SEGMENTATION_SW, TOKEN_SEGMENTATION_SP]
 
 # sequence length count types
@@ -370,21 +429,21 @@ SEQ_LEN_IN_CHARACTERS = "char"
 SEQ_LEN_IN_TOKENS = "token"
 
 # scoring
-SCORING_TYPE_NEGLOGPROB = 'neglogprob'
-SCORING_TYPE_LOGPROB = 'logprob'
+SCORING_TYPE_NEGLOGPROB = "neglogprob"
+SCORING_TYPE_LOGPROB = "logprob"
 SCORING_TYPE_DEFAULT = SCORING_TYPE_NEGLOGPROB
 SCORING_TYPE_CHOICES = [SCORING_TYPE_NEGLOGPROB, SCORING_TYPE_LOGPROB]
 
 # parameter averaging
-AVERAGE_BEST = 'best'
-AVERAGE_LAST = 'last'
-AVERAGE_LIFESPAN = 'lifespan'
+AVERAGE_BEST = "best"
+AVERAGE_LAST = "last"
+AVERAGE_LIFESPAN = "lifespan"
 AVERAGE_CHOICES = [AVERAGE_BEST, AVERAGE_LAST, AVERAGE_LIFESPAN]
 
 # brevity penalty
-BREVITY_PENALTY_CONSTANT = 'constant'
-BREVITY_PENALTY_LEARNED = 'learned'
-BREVITY_PENALTY_NONE = 'none'
+BREVITY_PENALTY_CONSTANT = "constant"
+BREVITY_PENALTY_LEARNED = "learned"
+BREVITY_PENALTY_NONE = "none"
 
 # k-nn
 KNN_STATE_DATA_STORE_NAME = "keys.npy"

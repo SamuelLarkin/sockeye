@@ -44,12 +44,14 @@ def average(param_paths: Iterable[str]) -> Dict[str, torch.Tensor]:
     all_params = []  # type: List[Dict[str, torch.Tensor]]
     for path in param_paths:
         logger.info("Loading parameters from '%s'", path)
-        params = torch.load(path, map_location=torch.device('cpu'))
+        params = torch.load(path, map_location=torch.device("cpu"))
         all_params.append(params)
 
     logger.info("%d models loaded", len(all_params))
-    utils.check_condition(all(all_params[0].keys() == p.keys() for p in all_params),
-                          "param names do not match across models")
+    utils.check_condition(
+        all(all_params[0].keys() == p.keys() for p in all_params),
+        "param names do not match across models",
+    )
 
     avg_params = {}
     # average arg_params
@@ -59,7 +61,9 @@ def average(param_paths: Iterable[str]) -> Dict[str, torch.Tensor]:
     return avg_params
 
 
-def find_checkpoints(model_path: str, size=4, strategy="best", metric: str = C.PERPLEXITY) -> List[str]:
+def find_checkpoints(
+    model_path: str, size=4, strategy="best", metric: str = C.PERPLEXITY
+) -> List[str]:
     """
     Finds N best points from .metrics file according to strategy.
 
@@ -73,7 +77,11 @@ def find_checkpoints(model_path: str, size=4, strategy="best", metric: str = C.P
     points = utils.get_validation_metric_points(model_path=model_path, metric=metric)
     # keep only points for which .param files exist
     param_path = os.path.join(model_path, C.PARAMS_NAME)
-    points = [(value, checkpoint) for value, checkpoint in points if os.path.exists(param_path % checkpoint)]
+    points = [
+        (value, checkpoint)
+        for value, checkpoint in points
+        if os.path.exists(param_path % checkpoint)
+    ]
 
     if strategy == C.AVERAGE_BEST:
         # N best scoring points
@@ -110,7 +118,7 @@ def strategy_best(points, size, maximize):
 def strategy_last(points, size, maximize):
     best = max if maximize else min
     after_top = points.index(best(points)) + 1
-    top_n = points[max(0, after_top - size):after_top]
+    top_n = points[max(0, after_top - size) : after_top]
     return top_n
 
 
@@ -132,7 +140,8 @@ def strategy_lifespan(points, size, maximize):
     top_n = sorted(
         top_n,
         key=lambda point: [point[0], point[1] if maximize else -point[1]],
-        reverse=True)[:size]
+        reverse=True,
+    )[:size]
     return top_n
 
 
@@ -141,7 +150,9 @@ def main():
     Commandline interface to average parameters.
     """
     setup_main_logger(console=True, file_logging=False)
-    params = argparse.ArgumentParser(description="Averages parameters from multiple models.")
+    params = argparse.ArgumentParser(
+        description="Averages parameters from multiple models."
+    )
     arguments.add_average_args(params)
     args = params.parse_args()
     average_parameters(args)
@@ -153,10 +164,12 @@ def average_parameters(args: argparse.Namespace):
     if len(args.inputs) > 1:
         avg_params = average(args.inputs)
     else:
-        param_paths = find_checkpoints(model_path=args.inputs[0],
-                                       size=args.n,
-                                       strategy=args.strategy,
-                                       metric=args.metric)
+        param_paths = find_checkpoints(
+            model_path=args.inputs[0],
+            size=args.n,
+            strategy=args.strategy,
+            metric=args.metric,
+        )
         avg_params = average(param_paths)
 
     torch.save(avg_params, args.output)

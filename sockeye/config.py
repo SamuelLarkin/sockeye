@@ -25,7 +25,7 @@ class TaggedYamlObjectMetaclass(yaml.YAMLObjectMetaclass):
         cls.yaml_tag = "!" + name
         new_kwds = {}
         new_kwds.update(kwds)
-        new_kwds['yaml_tag'] = "!" + name
+        new_kwds["yaml_tag"] = "!" + name
         super().__init__(name, bases, new_kwds)
 
 
@@ -35,8 +35,7 @@ class SafeLoaderWithTuple(yaml.SafeLoader):
 
 
 SafeLoaderWithTuple.add_constructor(
-    u'tag:yaml.org,2002:python/tuple',
-    SafeLoaderWithTuple.construct_python_tuple
+    "tag:yaml.org,2002:python/tuple", SafeLoaderWithTuple.construct_python_tuple
 )
 
 
@@ -46,6 +45,7 @@ class Config(yaml.YAMLObject, metaclass=TaggedYamlObjectMetaclass):
     Base configuration object YAML (de-)serialization.
     Actual Configuration should subclass this object.
     """
+
     yaml_loader = SafeLoaderWithTuple  # type: ignore
 
     def save(self, fname: str):
@@ -55,11 +55,11 @@ class Config(yaml.YAMLObject, metaclass=TaggedYamlObjectMetaclass):
         :param fname: Name of file to store this Config in.
         """
         obj = copy.deepcopy(self)
-        with open(fname, 'w') as out:
+        with open(fname, "w") as out:
             yaml.dump(obj, out, default_flow_style=False)
 
     @staticmethod
-    def load(fname: str) -> 'Config':
+    def load(fname: str) -> "Config":
         """
         Returns a Config object loaded from a file.
 

@@ -32,12 +32,14 @@ class Loss(pt.nn.Module):
     as well as a weight (default 1.0) and a method to create the corresponding metric.
     """
 
-    def __init__(self,
-                 name: str,
-                 output_name: str,
-                 label_name: str,
-                 weight: float = 1.0,
-                 metric_prefix: str = '') -> None:
+    def __init__(
+        self,
+        name: str,
+        output_name: str,
+        label_name: str,
+        weight: float = 1.0,
+        metric_prefix: str = "",
+    ) -> None:
         super().__init__()
         self._name = name
         self._output_name = output_name
@@ -45,32 +47,42 @@ class Loss(pt.nn.Module):
         self._weight = weight
         self._metric = None  # type: Optional[LossMetric]
         self._metric_prefix = metric_prefix
-        logger.info("Loss: %s | weight=%.2f | metric: %s (%s) | output_name: '%s' | label_name: '%s'",
-                    self._name, self.weight, self.metric.name, self.metric.short_name,
-                    self.output_name, self.label_name)
+        logger.info(
+            "Loss: %s | weight=%.2f | metric: %s (%s) | output_name: '%s' | label_name: '%s'",
+            self._name,
+            self.weight,
+            self.metric.name,
+            self.metric.short_name,
+            self.output_name,
+            self.label_name,
+        )
 
     def __call__(self, outputs: Dict[str, Any], labels: Dict[str, Any]):
         """
         Loss retrieves the required output and label.
         """
-        utils.check_condition(self.output_name in outputs,
-                              "output '%s' not found. Loss requires this output key" % self.output_name)
-        utils.check_condition(self.label_name in labels,
-                              "label '%s' not found. Loss requires this label key" % self.output_name)
+        utils.check_condition(
+            self.output_name in outputs,
+            "output '%s' not found. Loss requires this output key" % self.output_name,
+        )
+        utils.check_condition(
+            self.label_name in labels,
+            "label '%s' not found. Loss requires this label key" % self.output_name,
+        )
         output = outputs[self.output_name]
         label = labels[self.label_name]
 
         return super().__call__(output, label)
 
     @abstractmethod
-    def create_metric(self) -> 'LossMetric':
+    def create_metric(self) -> "LossMetric":
         """
         Create an instance of the EvalMetric that corresponds to this Loss function.
         """
         raise NotImplementedError()
 
     @property
-    def metric(self) -> 'LossMetric':
+    def metric(self) -> "LossMetric":
         if self._metric is None:
             self._metric = self.create_metric()
         return self._metric
@@ -93,8 +105,9 @@ class Loss(pt.nn.Module):
 
 
 class LossMetric(ABC):
-
-    def __init__(self, name: str, short_name: Optional[str] = None, prefix: str = '') -> None:
+    def __init__(
+        self, name: str, short_name: Optional[str] = None, prefix: str = ""
+    ) -> None:
         self._name = prefix + name
         self._short_name = prefix + short_name if short_name else self._name
         self._sum = 0.0
@@ -119,7 +132,7 @@ class LossMetric(ABC):
         self._num_inst += num_samples
 
     def get(self) -> float:
-        return self._sum / self._num_inst if self._num_inst else float('nan')
+        return self._sum / self._num_inst if self._num_inst else float("nan")
 
     def reset(self):
         self._sum = 0.0
@@ -132,30 +145,39 @@ class CrossEntropyLoss(Loss):
     Uses an efficient implementation for label smoothing and avoids the obscure SoftmaxOutput op.
     """
 
-    def __init__(self,
-                 name: str = C.CROSS_ENTROPY,
-                 weight: float = 1.0,
-                 label_smoothing: float = 0.0,
-                 dtype: str = C.DTYPE_FP32,
-                 output_name: str = C.LOGITS_NAME,
-                 label_name: str = C.TARGET_LABEL_NAME,
-                 ignore_label: int = C.PAD_ID,
-                 metric_prefix: str = '',
-                 label_smoothing_impl: str = 'mxnet') -> None:
-        super().__init__(name=name, output_name=output_name, label_name=label_name,
-                         weight=weight, metric_prefix=metric_prefix)
+    def __init__(
+        self,
+        name: str = C.CROSS_ENTROPY,
+        weight: float = 1.0,
+        label_smoothing: float = 0.0,
+        dtype: str = C.DTYPE_FP32,
+        output_name: str = C.LOGITS_NAME,
+        label_name: str = C.TARGET_LABEL_NAME,
+        ignore_label: int = C.PAD_ID,
+        metric_prefix: str = "",
+        label_smoothing_impl: str = "mxnet",
+    ) -> None:
+        super().__init__(
+            name=name,
+            output_name=output_name,
+            label_name=label_name,
+            weight=weight,
+            metric_prefix=metric_prefix,
+        )
         self.ignore_label = ignore_label
         self._alpha = label_smoothing
         self._dtype = dtype
-        self._reduction = 'mean'  # TODO: consider sum reduction and normalization outside of loss for reporting
-        if label_smoothing == 0 or label_smoothing_impl == 'torch':
+        self._reduction = "mean"  # TODO: consider sum reduction and normalization outside of loss for reporting
+        if label_smoothing == 0 or label_smoothing_impl == "torch":
             self._ce_impl = self._torch_cross_entropy_loss
-        elif label_smoothing > 0.0 and label_smoothing_impl == 'mxnet':
+        elif label_smoothing > 0.0 and label_smoothing_impl == "mxnet":
             self._ce_impl = self._smoothed_loss_as_in_mxnet
-        elif label_smoothing > 0.0 and label_smoothing_impl == 'fairseq':
+        elif label_smoothing > 0.0 and label_smoothing_impl == "fairseq":
             self._ce_impl = self._smoothed_loss_as_in_fairseq
         else:
-            raise ValueError("unknown label_smoothing impl. choose from mxnet, fairseq, or torch.")
+            raise ValueError(
+                "unknown label_smoothing impl. choose from mxnet, fairseq, or torch."
+            )
 
     def _smoothed_loss_as_in_mxnet(self, logits, labels):
         """
@@ -208,18 +230,24 @@ class CrossEntropyLoss(Loss):
         # Reshape due to: view size is not compatible with input tensor's size and stride
         # (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
         labels = labels.reshape(-1)
-        _kwargs = {'weight': None, 'ignore_index': self.ignore_label, 'reduction': self._reduction}
+        _kwargs = {
+            "weight": None,
+            "ignore_index": self.ignore_label,
+            "reduction": self._reduction,
+        }
         if self._alpha > 0.0:
-            _kwargs['label_smoothing'] = self._alpha
+            _kwargs["label_smoothing"] = self._alpha
         ce = pt.nn.functional.cross_entropy(logits, labels.long(), **_kwargs)
         ce *= self.weight
         return ce
 
-    def forward(self, logits: pt.Tensor, labels: pt.Tensor) -> Tuple[pt.Tensor, pt.Tensor]:
+    def forward(
+        self, logits: pt.Tensor, labels: pt.Tensor
+    ) -> Tuple[pt.Tensor, pt.Tensor]:
         ce = self._ce_impl(logits, labels)
         return ce, pt.ones(1, device=ce.device)
 
-    def create_metric(self) -> 'LossMetric':
+    def create_metric(self) -> "LossMetric":
         """
         Create an instance of the EvalMetric that corresponds to this Loss function.
         """
@@ -227,32 +255,40 @@ class CrossEntropyLoss(Loss):
 
 
 class DynamicBCEWithLogitsLoss(pt.nn.BCEWithLogitsLoss):
-    """ A version of BCEWithLogitsLoss where the pos_weight can be supplied dynamically in the `forward` call. """
+    """A version of BCEWithLogitsLoss where the pos_weight can be supplied dynamically in the `forward` call."""
 
-    def __init__(self, weight: Optional[pt.Tensor] = None, size_average=None, reduce=None, reduction: str = 'mean',
-                 pos_weight: Optional[pt.Tensor] = None) -> None:
+    def __init__(
+        self,
+        weight: Optional[pt.Tensor] = None,
+        size_average=None,
+        reduce=None,
+        reduction: str = "mean",
+        pos_weight: Optional[pt.Tensor] = None,
+    ) -> None:
         super().__init__(reduction=reduction)
-        self.register_buffer('weight', weight)
-        self.register_buffer('pos_weight', pos_weight)
+        self.register_buffer("weight", weight)
+        self.register_buffer("pos_weight", pos_weight)
         self.weight: Optional[pt.Tensor]
         self.pos_weight: Optional[pt.Tensor]
 
-    def forward(self, input: pt.Tensor, target: pt.Tensor, pos_weight: Optional[pt.Tensor] = None) -> pt.Tensor:
+    def forward(
+        self,
+        input: pt.Tensor,
+        target: pt.Tensor,
+        pos_weight: Optional[pt.Tensor] = None,
+    ) -> pt.Tensor:
         if pos_weight is None:
             pos_weight = self.pos_weight
 
         return pt.nn.functional.binary_cross_entropy_with_logits(
-            input,
-            target,
-            self.weight,
-            pos_weight=pos_weight,
-            reduction=self.reduction)
+            input, target, self.weight, pos_weight=pos_weight, reduction=self.reduction
+        )
 
 
 @pt.jit.script
 def _label_to_bow(label: pt.Tensor, num_labels: int):
     bow = pt.zeros(label.shape[0], num_labels, device=label.device)
-    bow[pt.arange(0, label.shape[0], dtype=pt.int64)[:, np.newaxis], label.long()] = 1.
+    bow[pt.arange(0, label.shape[0], dtype=pt.int64)[:, np.newaxis], label.long()] = 1.0
     return bow
 
 
@@ -261,21 +297,28 @@ class BinaryCrossEntropyBowLoss(Loss):
     Computes the binary cross entropy loss over a bag-of-words of target tokens.
     """
 
-    def __init__(self,
-                 name: str = C.BINARY_CROSS_ENTROPY,
-                 pos_weight: float = 1.0,
-                 weight: float = 1.0,
-                 dtype: str = C.DTYPE_FP32,
-                 output_name: str = C.NVS_PRED_NAME,
-                 label_name: str = C.TARGET_LABEL_NAME,
-                 num_labels: int = 0,
-                 metric_prefix: str = '') -> None:
-        super().__init__(name=name, output_name=output_name, label_name=label_name,
-                         weight=weight, metric_prefix=metric_prefix)
+    def __init__(
+        self,
+        name: str = C.BINARY_CROSS_ENTROPY,
+        pos_weight: float = 1.0,
+        weight: float = 1.0,
+        dtype: str = C.DTYPE_FP32,
+        output_name: str = C.NVS_PRED_NAME,
+        label_name: str = C.TARGET_LABEL_NAME,
+        num_labels: int = 0,
+        metric_prefix: str = "",
+    ) -> None:
+        super().__init__(
+            name=name,
+            output_name=output_name,
+            label_name=label_name,
+            weight=weight,
+            metric_prefix=metric_prefix,
+        )
         self._dtype = dtype
         assert num_labels != 0, "num_labels required"
         self._num_labels = num_labels
-        self.ce_loss = DynamicBCEWithLogitsLoss(reduction='none')
+        self.ce_loss = DynamicBCEWithLogitsLoss(reduction="none")
         self.pos_weight = pos_weight
 
     def forward(self, output: pt.Tensor, label: pt.Tensor):
@@ -293,14 +336,14 @@ class BinaryCrossEntropyBowLoss(Loss):
         num_negative = num_total - num_positive
         pos_weight = self.pos_weight * num_negative / num_positive
 
-        # instead of normalizing 1/num_labels, as done by the ce block, we want to also 
+        # instead of normalizing 1/num_labels, as done by the ce block, we want to also
         # normalize by the virtual positive counts implied by the pos_weight
         # Everything is one per sentence, so we get the average positive cases
         # convert it to the additional (therefore pos_weight-1) implied counts
         # and renormalize
         avg_pos_count = pt.mean(pt.sum(bow, dim=1).float())
-        implied_pos_count = avg_pos_count * (pos_weight-1)
-        scale = 1. / (self._num_labels + implied_pos_count)
+        implied_pos_count = avg_pos_count * (pos_weight - 1)
+        scale = 1.0 / (self._num_labels + implied_pos_count)
 
         # shape: (batch_size, vocab_size)
         loss = self.ce_loss(nvs_pred, bow, pos_weight)
@@ -314,13 +357,17 @@ class BinaryCrossEntropyBowLoss(Loss):
 
         return ce, pt.ones(1, device=ce.device)
 
-    def create_metric(self) -> 'LossMetric':
+    def create_metric(self) -> "LossMetric":
         return PerplexityMetric(prefix=self._metric_prefix)
 
 
 class PerplexityMetric(LossMetric):
-
-    def __init__(self, prefix: str = '', name: str = C.PERPLEXITY, short_name: str = C.PERPLEXITY_SHORT_NAME) -> None:
+    def __init__(
+        self,
+        prefix: str = "",
+        name: str = C.PERPLEXITY,
+        short_name: str = C.PERPLEXITY_SHORT_NAME,
+    ) -> None:
         super().__init__(prefix=prefix, name=name, short_name=short_name)
 
     def update(self, batch_cross_entropy: float, batch_num_valid: float):
@@ -338,14 +385,20 @@ class PoissonLoss(Loss):
     square error between lengths, not length ratios!
     """
 
-    def __init__(self,
-                 name: str = f'{C.LENRATIO_NAME}_{C.LINK_POISSON}',
-                 weight: float = 1.0,
-                 output_name: str = C.LENRATIO_NAME,
-                 label_name: str = C.LENRATIO_LABEL_NAME) -> None:
-        super().__init__(name=name, output_name=output_name, label_name=label_name, weight=weight)
+    def __init__(
+        self,
+        name: str = f"{C.LENRATIO_NAME}_{C.LINK_POISSON}",
+        weight: float = 1.0,
+        output_name: str = C.LENRATIO_NAME,
+        label_name: str = C.LENRATIO_LABEL_NAME,
+    ) -> None:
+        super().__init__(
+            name=name, output_name=output_name, label_name=label_name, weight=weight
+        )
 
-    def forward(self, length_predictions: pt.Tensor, labels: pt.Tensor) -> Tuple[pt.Tensor, pt.Tensor]:
+    def forward(
+        self, length_predictions: pt.Tensor, labels: pt.Tensor
+    ) -> Tuple[pt.Tensor, pt.Tensor]:
         """
         Returns Poisson loss and output given data and expected integers as labels.
 
@@ -354,13 +407,15 @@ class PoissonLoss(Loss):
         :return: Poisson loss of length predictions of the batch, and number of samples (batch size).
         """
         # (batch_size,)
-        loss = length_predictions - labels * pt.log(pt.clamp(length_predictions, min=1e-10))
+        loss = length_predictions - labels * pt.log(
+            pt.clamp(length_predictions, min=1e-10)
+        )
         # (1,)
         loss = (loss * self.weight).sum()
         num_samples = pt.ones_like(length_predictions).sum()
         return loss, num_samples
 
-    def create_metric(self) -> 'LossMetric':
+    def create_metric(self) -> "LossMetric":
         return LossMetric(name=C.LENRATIO_MSE)
 
 
@@ -370,14 +425,20 @@ class MSELoss(Loss):
     MSEMetric for this loss will be reporting the mean square error between length ratios.
     """
 
-    def __init__(self,
-                 name: str = C.LENRATIO_NAME + "_" + C.LINK_NORMAL,
-                 weight: float = 1.0,
-                 output_name: str = C.LENRATIO_NAME,
-                 label_name: str = C.LENRATIO_LABEL_NAME) -> None:
-        super().__init__(name=name, output_name=output_name, label_name=label_name, weight=weight)
+    def __init__(
+        self,
+        name: str = C.LENRATIO_NAME + "_" + C.LINK_NORMAL,
+        weight: float = 1.0,
+        output_name: str = C.LENRATIO_NAME,
+        label_name: str = C.LENRATIO_LABEL_NAME,
+    ) -> None:
+        super().__init__(
+            name=name, output_name=output_name, label_name=label_name, weight=weight
+        )
 
-    def forward(self, length_predictions: pt.Tensor, labels: pt.Tensor) -> Tuple[pt.Tensor, pt.Tensor]:
+    def forward(
+        self, length_predictions: pt.Tensor, labels: pt.Tensor
+    ) -> Tuple[pt.Tensor, pt.Tensor]:
         """
         Returns MSE loss.
 
@@ -392,6 +453,5 @@ class MSELoss(Loss):
         num_samples = pt.ones_like(length_predictions).sum()
         return loss, num_samples
 
-    def create_metric(self) -> 'LossMetric':
+    def create_metric(self) -> "LossMetric":
         return LossMetric(name=C.LENRATIO_MSE)
-

@@ -50,48 +50,62 @@ class TransformerEncoderBlock(pt.nn.Module):
     in between.
     """
 
-    def __init__(self,
-                 config: TransformerConfig,
-                 inference_only: bool = False,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        config: TransformerConfig,
+        inference_only: bool = False,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         super().__init__()
 
-        self.pre_self_attention = TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                                          dropout=config.dropout_prepost,
-                                                          num_hidden=config.model_size,
-                                                          dtype=dtype,
-                                                          clamp_to_dtype=clamp_to_dtype)
-        self.self_attention = sockeye.layers.MultiHeadSelfAttention(depth_att=config.model_size,
-                                                                    heads=config.attention_heads,
-                                                                    depth_out=config.model_size,
-                                                                    dropout=config.dropout_attention,
-                                                                    dtype=dtype,
-                                                                    clamp_to_dtype=clamp_to_dtype)
-        self.post_self_attention = TransformerProcessBlock(sequence=config.postprocess_sequence,
-                                                           dropout=config.dropout_prepost,
-                                                           num_hidden=config.model_size,
-                                                           dtype=dtype,
-                                                           clamp_to_dtype=clamp_to_dtype)
+        self.pre_self_attention = TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.self_attention = sockeye.layers.MultiHeadSelfAttention(
+            depth_att=config.model_size,
+            heads=config.attention_heads,
+            depth_out=config.model_size,
+            dropout=config.dropout_attention,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.post_self_attention = TransformerProcessBlock(
+            sequence=config.postprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
-        self.pre_ff = TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                              dropout=config.dropout_prepost,
-                                              num_hidden=config.model_size,
-                                              dtype=dtype,
-                                              clamp_to_dtype=clamp_to_dtype)
-        self.ff = TransformerFeedForward(num_hidden=config.feed_forward_num_hidden,
-                                         num_model=config.model_size,
-                                         act_type=config.act_type,
-                                         dropout=config.dropout_act,
-                                         use_glu=config.use_glu,
-                                         inference_only=inference_only,
-                                         dtype=dtype,
-                                         clamp_to_dtype=clamp_to_dtype)
-        self.post_ff = TransformerProcessBlock(sequence=config.postprocess_sequence,
-                                               dropout=config.dropout_prepost,
-                                               num_hidden=config.model_size,
-                                               dtype=dtype,
-                                               clamp_to_dtype=clamp_to_dtype)
+        self.pre_ff = TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.ff = TransformerFeedForward(
+            num_hidden=config.feed_forward_num_hidden,
+            num_model=config.model_size,
+            act_type=config.act_type,
+            dropout=config.dropout_act,
+            use_glu=config.use_glu,
+            inference_only=inference_only,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.post_ff = TransformerProcessBlock(
+            sequence=config.postprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
         self.lhuc = None
         if config.use_lhuc:
             self.lhuc = sockeye.layers.LHUC(config.model_size, dtype=dtype)
@@ -103,10 +117,12 @@ class TransformerEncoderBlock(pt.nn.Module):
                          to mask self-attention scores. True for padding positions.
         """
         # self-attention
-        data_self_att, _ = self.self_attention(inputs=self.pre_self_attention(data),
-                                               previous_states=None,
-                                               mask=att_mask,
-                                               bias=None)
+        data_self_att, _ = self.self_attention(
+            inputs=self.pre_self_attention(data),
+            previous_states=None,
+            mask=att_mask,
+            bias=None,
+        )
         data = self.post_self_attention(data_self_att, data)
 
         # feed-forward
@@ -126,79 +142,101 @@ class TransformerDecoderBlock(pt.nn.Module):
     and a feed-forward layer with pre/post process blocks in between.
     """
 
-    def __init__(self,
-                 config: TransformerConfig,
-                 inference_only: bool,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        config: TransformerConfig,
+        inference_only: bool,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         super().__init__()
         self.decoder_type = config.decoder_type
         self.inference_only = inference_only
 
         self.autoregr_layer = None
         if self.decoder_type == C.TRANSFORMER_TYPE:
-            self.autoregr_layer = sockeye.layers.MultiHeadSelfAttention(depth_att=config.model_size,
-                                                                        heads=config.attention_heads,
-                                                                        depth_out=config.model_size,
-                                                                        dropout=config.dropout_attention,
-                                                                        dtype=dtype,
-                                                                        clamp_to_dtype=clamp_to_dtype)
+            self.autoregr_layer = sockeye.layers.MultiHeadSelfAttention(
+                depth_att=config.model_size,
+                heads=config.attention_heads,
+                depth_out=config.model_size,
+                dropout=config.dropout_attention,
+                dtype=dtype,
+                clamp_to_dtype=clamp_to_dtype,
+            )
         elif self.decoder_type == C.SSRU_TRANSFORMER:
-            self.autoregr_layer = sockeye.layers.SSRU(model_size=config.model_size,  # type: ignore
-                                                      inference_only=inference_only,  # type: ignore
-                                                      dtype=dtype,
-                                                      clamp_to_dtype=clamp_to_dtype)
+            self.autoregr_layer = sockeye.layers.SSRU(
+                model_size=config.model_size,  # type: ignore
+                inference_only=inference_only,  # type: ignore
+                dtype=dtype,
+                clamp_to_dtype=clamp_to_dtype,
+            )
         else:
             raise ValueError("Invalid decoder type.")
 
-        self.pre_autoregr_layer = TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                                          dropout=config.dropout_prepost,
-                                                          num_hidden=config.model_size,
-                                                          dtype=dtype,
-                                                          clamp_to_dtype=clamp_to_dtype)
+        self.pre_autoregr_layer = TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
-        self.post_autoregr_layer = TransformerProcessBlock(sequence=config.postprocess_sequence,
-                                                           dropout=config.dropout_prepost,
-                                                           num_hidden=config.model_size,
-                                                           dtype=dtype,
-                                                           clamp_to_dtype=clamp_to_dtype)
+        self.post_autoregr_layer = TransformerProcessBlock(
+            sequence=config.postprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
-        self.pre_enc_attention = TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                                         dropout=config.dropout_prepost,
-                                                         num_hidden=config.model_size,
-                                                         dtype=dtype,
-                                                         clamp_to_dtype=clamp_to_dtype)
-        self.enc_attention = sockeye.layers.MultiHeadAttention(depth_att=config.model_size,
-                                                               heads=config.attention_heads,
-                                                               depth_out=config.model_size,
-                                                               dropout=config.dropout_attention,
-                                                               depth_key_value=config.depth_key_value,
-                                                               dtype=dtype,
-                                                               clamp_to_dtype=clamp_to_dtype)
-        self.post_enc_attention = TransformerProcessBlock(sequence=config.postprocess_sequence,
-                                                          dropout=config.dropout_prepost,
-                                                          num_hidden=config.model_size,
-                                                          dtype=dtype,
-                                                          clamp_to_dtype=clamp_to_dtype)
+        self.pre_enc_attention = TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.enc_attention = sockeye.layers.MultiHeadAttention(
+            depth_att=config.model_size,
+            heads=config.attention_heads,
+            depth_out=config.model_size,
+            dropout=config.dropout_attention,
+            depth_key_value=config.depth_key_value,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.post_enc_attention = TransformerProcessBlock(
+            sequence=config.postprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
-        self.pre_ff = TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                              dropout=config.dropout_prepost,
-                                              num_hidden=config.model_size,
-                                              dtype=dtype,
-                                              clamp_to_dtype=clamp_to_dtype)
-        self.ff = TransformerFeedForward(num_hidden=config.feed_forward_num_hidden,
-                                         num_model=config.model_size,
-                                         act_type=config.act_type,
-                                         dropout=config.dropout_act,
-                                         use_glu=config.use_glu,
-                                         inference_only=inference_only,
-                                         dtype=dtype,
-                                         clamp_to_dtype=clamp_to_dtype)
-        self.post_ff = TransformerProcessBlock(sequence=config.postprocess_sequence,
-                                               dropout=config.dropout_prepost,
-                                               num_hidden=config.model_size,
-                                               dtype=dtype,
-                                               clamp_to_dtype=clamp_to_dtype)
+        self.pre_ff = TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.ff = TransformerFeedForward(
+            num_hidden=config.feed_forward_num_hidden,
+            num_model=config.model_size,
+            act_type=config.act_type,
+            dropout=config.dropout_act,
+            use_glu=config.use_glu,
+            inference_only=inference_only,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
+        self.post_ff = TransformerProcessBlock(
+            sequence=config.postprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
         self.lhuc = None
         if config.use_lhuc:
@@ -214,12 +252,12 @@ class TransformerDecoderBlock(pt.nn.Module):
 
     @property
     def num_state_tensors(self) -> int:
-        """ Number of state tensors returned by the layer """
+        """Number of state tensors returned by the layer"""
         return self.autoregr_layer.num_state_tensors
 
     @property
     def needs_mask(self):
-        """ Whether the block makes use of a mask tensor or not """
+        """Whether the block makes use of a mask tensor or not"""
         return self.autoregr_layer.needs_mask
 
     def get_states_shape(self, batch_size: int) -> Tuple:
@@ -229,24 +267,30 @@ class TransformerDecoderBlock(pt.nn.Module):
         """
         return self.autoregr_layer.get_state_shape(batch_size)
 
-    def forward(self,
-                target: pt.Tensor,
-                target_mask: Optional[pt.Tensor],
-                source: pt.Tensor,
-                source_mask: Optional[pt.Tensor],
-                autoregr_states: Optional[pt.Tensor],
-                enc_att_kv: Optional[pt.Tensor] = None) -> Tuple[pt.Tensor, pt.Tensor]:
-        target_autoregr, *new_autoregr_states = self.autoregr_layer(inputs=self.pre_autoregr_layer(target),
-                                                                    previous_states=autoregr_states,
-                                                                    mask=target_mask)
+    def forward(
+        self,
+        target: pt.Tensor,
+        target_mask: Optional[pt.Tensor],
+        source: pt.Tensor,
+        source_mask: Optional[pt.Tensor],
+        autoregr_states: Optional[pt.Tensor],
+        enc_att_kv: Optional[pt.Tensor] = None,
+    ) -> Tuple[pt.Tensor, pt.Tensor]:
+        target_autoregr, *new_autoregr_states = self.autoregr_layer(
+            inputs=self.pre_autoregr_layer(target),
+            previous_states=autoregr_states,
+            mask=target_mask,
+        )
 
         target = self.post_autoregr_layer(target_autoregr, target)
 
         # encoder attention
-        target_enc_att = self.enc_attention(queries=self.pre_enc_attention(target),
-                                            key_values=source,
-                                            mask=source_mask,
-                                            projected_memory_kv=enc_att_kv)
+        target_enc_att = self.enc_attention(
+            queries=self.pre_enc_attention(target),
+            key_values=source,
+            mask=source_mask,
+            projected_memory_kv=enc_att_kv,
+        )
 
         target = self.post_enc_attention(target_enc_att, target)
 
@@ -269,17 +313,19 @@ class TransformerProcessBlock(pt.nn.Module):
     d: dropout
     """
 
-    def __init__(self,
-                 sequence: str,
-                 dropout: float,
-                 num_hidden: int = 0,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        sequence: str,
+        dropout: float,
+        num_hidden: int = 0,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         super().__init__()
         self.sequence = sequence
         self.clamp_to_dtype = clamp_to_dtype
         self.layer_norm = None
-        if 'n' in sequence:
+        if "n" in sequence:
             # do not use Apex' FusedLayerNorm because of
             # https://github.com/huggingface/transformers/issues/9377
             self.layer_norm = pt.nn.LayerNorm(num_hidden, eps=1e-06, dtype=dtype)
@@ -298,10 +344,11 @@ class TransformerProcessBlock(pt.nn.Module):
             return data
 
         if prev is None:
-            assert 'r' not in self.sequence, "Residual connection not allowed if no previous value given."
+            assert "r" not in self.sequence, (
+                "Residual connection not allowed if no previous value given."
+            )
 
         for step in self.sequence:
-
             if step == "r":
                 data = data + prev
 
@@ -320,25 +367,32 @@ class TransformerProcessBlock(pt.nn.Module):
 
 
 class TransformerFeedForward(pt.nn.Module):
-
-    def __init__(self,
-                 num_hidden: int,
-                 num_model: int,
-                 act_type: str,
-                 dropout: float,
-                 use_glu: bool = False,
-                 inference_only: bool = False,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        num_hidden: int,
+        num_model: int,
+        act_type: str,
+        dropout: float,
+        use_glu: bool = False,
+        inference_only: bool = False,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         super().__init__()
         self.use_glu = use_glu
         self.clamp_to_dtype = clamp_to_dtype
-        self.ff1 = pt.nn.Linear(in_features=num_model, out_features=num_hidden, dtype=dtype)
+        self.ff1 = pt.nn.Linear(
+            in_features=num_model, out_features=num_hidden, dtype=dtype
+        )
         self.act = sockeye.layers.get_activation(act_type)
         if self.use_glu:
-            self.linear = pt.nn.Linear(in_features=num_model, out_features=num_hidden, dtype=dtype)
+            self.linear = pt.nn.Linear(
+                in_features=num_model, out_features=num_hidden, dtype=dtype
+            )
         self.drop = pt.nn.Dropout(p=dropout)
-        self.ff2 = pt.nn.Linear(in_features=num_hidden, out_features=num_model, dtype=dtype)
+        self.ff2 = pt.nn.Linear(
+            in_features=num_hidden, out_features=num_model, dtype=dtype
+        )
 
     def forward(self, x):
         h = self.ff1(x)
@@ -353,9 +407,10 @@ class TransformerFeedForward(pt.nn.Module):
 
 
 class AutoRegressiveMask(pt.nn.Module):
-
     def forward(self, x: pt.Tensor) -> pt.Tensor:
-        """ Input tensor with length on dimension 1 """
-        mask = pt.full((x.shape[1], x.shape[1]), fill_value=1, device=x.device, dtype=pt.bool)
+        """Input tensor with length on dimension 1"""
+        mask = pt.full(
+            (x.shape[1], x.shape[1]), fill_value=1, device=x.device, dtype=pt.bool
+        )
         mask = pt.triu(mask, diagonal=1)
         return mask.detach()  # Shape: (len, len)

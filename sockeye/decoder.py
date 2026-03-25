@@ -14,6 +14,7 @@
 """
 Decoders for sequence-to-sequence models.
 """
+
 import logging
 from abc import abstractmethod
 from itertools import islice
@@ -30,11 +31,18 @@ logger = logging.getLogger(__name__)
 DecoderConfig = Union[TransformerConfig]  # type: ignore
 
 
-def get_decoder(config: DecoderConfig,
-                inference_only: bool = False,
-                dtype: Optional[pt.dtype] = None,
-                clamp_to_dtype: bool = False) -> 'Decoder':
-    return Decoder.get_decoder(config=config, inference_only=inference_only, dtype=dtype, clamp_to_dtype=clamp_to_dtype)
+def get_decoder(
+    config: DecoderConfig,
+    inference_only: bool = False,
+    dtype: Optional[pt.dtype] = None,
+    clamp_to_dtype: bool = False,
+) -> "Decoder":
+    return Decoder.get_decoder(
+        config=config,
+        inference_only=inference_only,
+        dtype=dtype,
+        clamp_to_dtype=clamp_to_dtype,
+    )
 
 
 class Decoder(pt.nn.Module):
@@ -66,11 +74,13 @@ class Decoder(pt.nn.Module):
         return wrapper
 
     @classmethod
-    def get_decoder(cls,
-                    config: DecoderConfig,
-                    inference_only: bool,
-                    dtype: Optional[pt.dtype] = None,
-                    clamp_to_dtype: bool = False) -> 'Decoder':
+    def get_decoder(
+        cls,
+        config: DecoderConfig,
+        inference_only: bool,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> "Decoder":
         """
         Creates decoder based on config type.
 
@@ -84,10 +94,16 @@ class Decoder(pt.nn.Module):
         """
         config_type = type(config)
         if config_type not in cls.__registry:
-            raise ValueError('Unsupported decoder configuration %s' % config_type.__name__)
+            raise ValueError(
+                "Unsupported decoder configuration %s" % config_type.__name__
+            )
         decoder_cls = cls.__registry[config_type]
-        return decoder_cls(config=config, inference_only=inference_only, dtype=dtype,  # type: ignore
-                           clamp_to_dtype=clamp_to_dtype)  # type: ignore
+        return decoder_cls(
+            config=config,
+            inference_only=inference_only,
+            dtype=dtype,  # type: ignore
+            clamp_to_dtype=clamp_to_dtype,
+        )  # type: ignore
 
     @abstractmethod
     def __init__(self):
@@ -102,10 +118,12 @@ class Decoder(pt.nn.Module):
         raise NotImplementedError()
 
     @abstractmethod
-    def init_state_from_encoder(self,
-                                encoder_outputs: pt.Tensor,
-                                encoder_valid_length: Optional[pt.Tensor] = None,
-                                target_embed: Optional[pt.Tensor] = None) -> List[pt.Tensor]:
+    def init_state_from_encoder(
+        self,
+        encoder_outputs: pt.Tensor,
+        encoder_valid_length: Optional[pt.Tensor] = None,
+        target_embed: Optional[pt.Tensor] = None,
+    ) -> List[pt.Tensor]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -143,34 +161,45 @@ class TransformerDecoder(Decoder):
                            values for their dtype.
     """
 
-    def __init__(self,
-                 config: TransformerConfig,
-                 inference_only: bool = False,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        config: TransformerConfig,
+        inference_only: bool = False,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         Decoder.__init__(self)
         pt.nn.Module.__init__(self)
         self.config = config
-        self.pos_embedding = layers.PositionalEmbeddings(weight_type=self.config.positional_embedding_type,
-                                                         num_embed=self.config.model_size,
-                                                         max_seq_len=self.config.max_seq_len_target,
-                                                         scale_up_input=True,
-                                                         scale_down_positions=False,
-                                                         dtype=dtype)
+        self.pos_embedding = layers.PositionalEmbeddings(
+            weight_type=self.config.positional_embedding_type,
+            num_embed=self.config.model_size,
+            max_seq_len=self.config.max_seq_len_target,
+            scale_up_input=True,
+            scale_down_positions=False,
+            dtype=dtype,
+        )
         self.autoregressive_mask = transformer.AutoRegressiveMask()
 
-        self.layers = pt.nn.ModuleList(  # using ModuleList because we have additional inputs
-            transformer.TransformerDecoderBlock(config,
-                                                inference_only=inference_only,
-                                                dtype=dtype,
-                                                clamp_to_dtype=clamp_to_dtype)
-            for _ in range(config.num_layers))
+        self.layers = (
+            pt.nn.ModuleList(  # using ModuleList because we have additional inputs
+                transformer.TransformerDecoderBlock(
+                    config,
+                    inference_only=inference_only,
+                    dtype=dtype,
+                    clamp_to_dtype=clamp_to_dtype,
+                )
+                for _ in range(config.num_layers)
+            )
+        )
 
-        self.final_process = transformer.TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                                                 dropout=config.dropout_prepost,
-                                                                 num_hidden=self.config.model_size,
-                                                                 dtype=dtype,
-                                                                 clamp_to_dtype=clamp_to_dtype)
+        self.final_process = transformer.TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=self.config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
         self.dropout = pt.nn.Dropout(p=self.config.dropout_prepost)
         self.set_inference_only(inference_only)
 
@@ -187,9 +216,11 @@ class TransformerDecoder(Decoder):
         Returns the structure of states used for manipulation of the states.
         Each state is either labeled 's' for step, 'b' for source_mask, 'd' for decoder, or 'e' for encoder.
         """
-        structure = ''
+        structure = ""
         if self.inference_only:
-            structure += C.STEP_STATE + C.MASK_STATE + C.ENCODER_STATE * self.config.num_layers
+            structure += (
+                C.STEP_STATE + C.MASK_STATE + C.ENCODER_STATE * self.config.num_layers
+            )
         else:
             structure += C.STEP_STATE + C.ENCODER_STATE + C.MASK_STATE
 
@@ -198,10 +229,12 @@ class TransformerDecoder(Decoder):
 
         return structure
 
-    def init_state_from_encoder(self,
-                                encoder_outputs: pt.Tensor,
-                                encoder_valid_length: Optional[pt.Tensor] = None,
-                                target_embed: Optional[pt.Tensor] = None) -> List[pt.Tensor]:
+    def init_state_from_encoder(
+        self,
+        encoder_outputs: pt.Tensor,
+        encoder_valid_length: Optional[pt.Tensor] = None,
+        target_embed: Optional[pt.Tensor] = None,
+    ) -> List[pt.Tensor]:
         """
         Returns the initial states given encoder output. States for teacher-forced training are encoder outputs
         and a valid length mask for encoder outputs.
@@ -217,19 +250,28 @@ class TransformerDecoder(Decoder):
         """
         source_max_len = encoder_outputs.size()[1]
         # (batch * heads, 1, source_max_len)
-        source_mask = layers.prepare_source_length_mask(encoder_valid_length, self.config.attention_heads,
-                                                        source_max_len, mask_prepended_tokens=
-                                                        self.config.block_prepended_cross_attention)
+        source_mask = layers.prepare_source_length_mask(
+            encoder_valid_length,
+            self.config.attention_heads,
+            source_max_len,
+            mask_prepended_tokens=self.config.block_prepended_cross_attention,
+        )
         if target_embed is None:  # Inference: initial step = 0. Shape: (batch_size, 1)
             steps = pt.zeros_like(encoder_valid_length[:, :1])
             # Shape: (batch, heads, 1, src_max_len)
-            source_mask = source_mask.view(-1, self.config.attention_heads, 1, source_max_len)
+            source_mask = source_mask.view(
+                -1, self.config.attention_heads, 1, source_max_len
+            )
         else:  # Training: steps up to target length. Shape: (1, target_length)
             target_length = target_embed.size()[1]
             steps = pt.arange(0, target_length, device=target_embed.device).unsqueeze(0)
-            source_mask = source_mask.expand(-1, target_length, -1)  # Shape: (batch * heads, trg_max_len, src_max_len)
+            source_mask = source_mask.expand(
+                -1, target_length, -1
+            )  # Shape: (batch * heads, trg_max_len, src_max_len)
             # Shape: (batch, heads, trg_max_len, src_max_len)
-            source_mask = source_mask.view(-1, self.config.attention_heads, target_length, source_max_len)
+            source_mask = source_mask.view(
+                -1, self.config.attention_heads, target_length, source_max_len
+            )
 
         if self.inference_only:
             # Encoder projection caching, therefore we don't pass the encoder_outputs
@@ -245,9 +287,11 @@ class TransformerDecoder(Decoder):
         _batch_size = encoder_outputs.size()[0]
         _device = encoder_outputs.device
         _dtype = encoder_outputs.dtype
-        dummy_autoregr_states = [pt.zeros(layer.get_states_shape(_batch_size), device=_device, dtype=_dtype)
-                                 for layer in self.layers
-                                 for _ in range(layer.num_state_tensors)]
+        dummy_autoregr_states = [
+            pt.zeros(layer.get_states_shape(_batch_size), device=_device, dtype=_dtype)
+            for layer in self.layers
+            for _ in range(layer.num_state_tensors)
+        ]
 
         states += dummy_autoregr_states
         return states
@@ -264,26 +308,37 @@ class TransformerDecoder(Decoder):
         outputs, _ = self.forward(inputs, states)
         return outputs
 
-    def forward(self, step_input: pt.Tensor, states: List[pt.Tensor]) -> Tuple[pt.Tensor, List[pt.Tensor]]:
+    def forward(
+        self, step_input: pt.Tensor, states: List[pt.Tensor]
+    ) -> Tuple[pt.Tensor, List[pt.Tensor]]:
         target_mask = None
         if self.inference_only:
             steps, source_mask, *other = states
-            source_encoded = None  # use constant pre-computed key value projections from the states
-            enc_att_kv = other[:self.config.num_layers]
-            autoregr_states = other[self.config.num_layers:]
+            source_encoded = (
+                None  # use constant pre-computed key value projections from the states
+            )
+            enc_att_kv = other[: self.config.num_layers]
+            autoregr_states = other[self.config.num_layers :]
         else:
             if any(layer.needs_mask for layer in self.layers):
-                target_mask = self.autoregressive_mask(step_input)  # mask: (length, length)
+                target_mask = self.autoregressive_mask(
+                    step_input
+                )  # mask: (length, length)
             steps, source_encoded, source_mask, *autoregr_states = states
             enc_att_kv = [None for _ in range(self.config.num_layers)]
 
         if any(layer.num_state_tensors > 1 for layer in self.layers):
             # separates autoregressive states by layer
             states_iter = iter(autoregr_states)
-            autoregr_states = [list(islice(states_iter, 0, layer.num_state_tensors)) for layer in self.layers]  # type: ignore
+            autoregr_states = [
+                list(islice(states_iter, 0, layer.num_state_tensors))
+                for layer in self.layers
+            ]  # type: ignore
 
         batch, heads, target_max_len, source_max_len = source_mask.size()
-        source_mask_view = source_mask.view(batch * heads, target_max_len, source_max_len)
+        source_mask_view = source_mask.view(
+            batch * heads, target_max_len, source_max_len
+        )
 
         # target: (batch_size, length, model_size)
         target = self.pos_embedding(step_input, steps)
@@ -293,13 +348,17 @@ class TransformerDecoder(Decoder):
         target = self.dropout(target)
 
         new_autoregr_states = []  # type: List[pt.Tensor]
-        for layer, layer_autoregr_state, layer_enc_att_kv in zip(self.layers, autoregr_states, enc_att_kv):
-            target, new_layer_autoregr_state = layer(target=target,
-                                                     target_mask=target_mask,
-                                                     source=source_encoded,
-                                                     source_mask=source_mask_view,
-                                                     autoregr_states=layer_autoregr_state,
-                                                     enc_att_kv=layer_enc_att_kv)
+        for layer, layer_autoregr_state, layer_enc_att_kv in zip(
+            self.layers, autoregr_states, enc_att_kv
+        ):
+            target, new_layer_autoregr_state = layer(
+                target=target,
+                target_mask=target_mask,
+                source=source_encoded,
+                source_mask=source_mask_view,
+                autoregr_states=layer_autoregr_state,
+                enc_att_kv=layer_enc_att_kv,
+            )
 
             new_autoregr_states += [*new_layer_autoregr_state]
 
@@ -311,8 +370,10 @@ class TransformerDecoder(Decoder):
 
         if self.inference_only:
             # pass in cached encoder states
-            encoder_attention_keys_values = states[2:2 + self.config.num_layers]
-            new_states = [steps, states[1]] + encoder_attention_keys_values + new_autoregr_states
+            encoder_attention_keys_values = states[2 : 2 + self.config.num_layers]
+            new_states = (
+                [steps, states[1]] + encoder_attention_keys_values + new_autoregr_states
+            )
         else:
             new_states = [steps, states[1], states[2]] + new_autoregr_states
 

@@ -23,11 +23,18 @@ from . import layers
 from . import transformer
 
 
-def get_transformer_encoder(config: transformer.TransformerConfig,
-                            inference_only: bool = False,
-                            dtype: Optional[pt.dtype] = None,
-                            clamp_to_dtype: bool = False):
-    return TransformerEncoder(config=config, inference_only=inference_only, dtype=dtype, clamp_to_dtype=clamp_to_dtype)
+def get_transformer_encoder(
+    config: transformer.TransformerConfig,
+    inference_only: bool = False,
+    dtype: Optional[pt.dtype] = None,
+    clamp_to_dtype: bool = False,
+):
+    return TransformerEncoder(
+        config=config,
+        inference_only=inference_only,
+        dtype=dtype,
+        clamp_to_dtype=clamp_to_dtype,
+    )
 
 
 get_encoder = get_transformer_encoder
@@ -91,17 +98,23 @@ class Embedding(Encoder):
     :param dtype: Torch data type for parameters.
     """
 
-    def __init__(self,
-                 config: EmbeddingConfig,
-                 embedding: Optional[pt.nn.Embedding] = None,
-                 dtype: Optional[pt.dtype] = None) -> None:
+    def __init__(
+        self,
+        config: EmbeddingConfig,
+        embedding: Optional[pt.nn.Embedding] = None,
+        dtype: Optional[pt.dtype] = None,
+    ) -> None:
         super().__init__()
         self.config = config
         if embedding is not None:
             self.embedding = embedding
         else:
-            self.embedding = pt.nn.Embedding(self.config.vocab_size, self.config.num_embed,
-                                             sparse=self.config.allow_sparse_grad, dtype=dtype)
+            self.embedding = pt.nn.Embedding(
+                self.config.vocab_size,
+                self.config.num_embed,
+                sparse=self.config.allow_sparse_grad,
+                dtype=dtype,
+            )
 
         self.num_factors = self.config.num_factors
         self.factor_embeds = pt.nn.ModuleList()
@@ -111,8 +124,12 @@ class Embedding(Encoder):
                 if fc.share_embedding:
                     factor_embed = self.embedding
                 else:
-                    factor_embed = pt.nn.Embedding(fc.vocab_size, fc.num_embed,
-                                                   sparse=self.config.allow_sparse_grad, dtype=dtype)
+                    factor_embed = pt.nn.Embedding(
+                        fc.vocab_size,
+                        fc.num_embed,
+                        sparse=self.config.allow_sparse_grad,
+                        dtype=dtype,
+                    )
                 self.factor_embeds.append(factor_embed)
                 self.factor_combinations.append(fc.combine)
 
@@ -126,8 +143,9 @@ class Embedding(Encoder):
             average_factors_embeds = []
             concat_factors_embeds = []
             sum_factors_embeds = []
-            for i, (factor_embedding, factor_combination) in enumerate(zip(self.factor_embeds,
-                                                                           self.factor_combinations), 1):
+            for i, (factor_embedding, factor_combination) in enumerate(
+                zip(self.factor_embeds, self.factor_combinations), 1
+            ):
                 factor_data = data[:, :, i]
                 factor_embedded = factor_embedding(factor_data)
                 if factor_combination == C.FACTORS_COMBINE_CONCAT:
@@ -137,10 +155,14 @@ class Embedding(Encoder):
                 elif factor_combination == C.FACTORS_COMBINE_AVERAGE:
                     average_factors_embeds.append(factor_embedded)
                 else:
-                    raise ValueError(f"Unknown combine value for factors: {factor_combination}")
+                    raise ValueError(
+                        f"Unknown combine value for factors: {factor_combination}"
+                    )
 
             if average_factors_embeds:
-                embedded = pt.mean(pt.stack([embedded] + average_factors_embeds, dim=0), dim=0)
+                embedded = pt.mean(
+                    pt.stack([embedded] + average_factors_embeds, dim=0), dim=0
+                )
             if sum_factors_embeds:
                 for sum_factor_embed in sum_factors_embeds:
                     embedded = embedded + sum_factor_embed
@@ -169,37 +191,50 @@ class TransformerEncoder(Encoder):
     :param config: Configuration for transformer encoder.
     """
 
-    def __init__(self,
-                 config: transformer.TransformerConfig,
-                 inference_only: bool = False,
-                 dtype: Optional[pt.dtype] = None,
-                 clamp_to_dtype: bool = False) -> None:
+    def __init__(
+        self,
+        config: transformer.TransformerConfig,
+        inference_only: bool = False,
+        dtype: Optional[pt.dtype] = None,
+        clamp_to_dtype: bool = False,
+    ) -> None:
         pt.nn.Module.__init__(self)
         self.config = config
 
         self.dropout = pt.nn.Dropout(p=config.dropout_prepost)
 
-        self.pos_embedding = layers.PositionalEmbeddings(weight_type=self.config.positional_embedding_type,
-                                                         num_embed=self.config.model_size,
-                                                         max_seq_len=self.config.max_seq_len_source,
-                                                         scale_up_input=True,
-                                                         scale_down_positions=False,
-                                                         dtype=dtype)
+        self.pos_embedding = layers.PositionalEmbeddings(
+            weight_type=self.config.positional_embedding_type,
+            num_embed=self.config.model_size,
+            max_seq_len=self.config.max_seq_len_source,
+            scale_up_input=True,
+            scale_down_positions=False,
+            dtype=dtype,
+        )
 
-        self.layers = pt.nn.ModuleList(  # using ModuleList because we have additional inputs
-            transformer.TransformerEncoderBlock(config,
-                                                inference_only=inference_only,
-                                                dtype=dtype,
-                                                clamp_to_dtype=clamp_to_dtype)
-            for _ in range(config.num_layers))
+        self.layers = (
+            pt.nn.ModuleList(  # using ModuleList because we have additional inputs
+                transformer.TransformerEncoderBlock(
+                    config,
+                    inference_only=inference_only,
+                    dtype=dtype,
+                    clamp_to_dtype=clamp_to_dtype,
+                )
+                for _ in range(config.num_layers)
+            )
+        )
 
-        self.final_process = transformer.TransformerProcessBlock(sequence=config.preprocess_sequence,
-                                                                 dropout=config.dropout_prepost,
-                                                                 num_hidden=self.config.model_size,
-                                                                 dtype=dtype,
-                                                                 clamp_to_dtype=clamp_to_dtype)
+        self.final_process = transformer.TransformerProcessBlock(
+            sequence=config.preprocess_sequence,
+            dropout=config.dropout_prepost,
+            num_hidden=self.config.model_size,
+            dtype=dtype,
+            clamp_to_dtype=clamp_to_dtype,
+        )
 
-    def forward(self, data: pt.Tensor, valid_length: pt.Tensor) -> Tuple[pt.Tensor, pt.Tensor, pt.Tensor]:
+    def forward(
+        self, data: pt.Tensor, valid_length: pt.Tensor
+    ) -> Tuple[pt.Tensor, pt.Tensor, pt.Tensor]:
         # positional embedding
         data = self.pos_embedding(data)
 
@@ -208,10 +243,16 @@ class TransformerEncoder(Encoder):
 
         _, max_len, __ = data.size()
         # length_mask for source attention masking. Shape: (batch_size, max_len)
-        single_head_att_mask = layers.prepare_source_length_mask(valid_length, self.config.attention_heads,
-                                                                 max_length=max_len, expand=False)
+        single_head_att_mask = layers.prepare_source_length_mask(
+            valid_length, self.config.attention_heads, max_length=max_len, expand=False
+        )
         # Shape: (batch_size, max_len) -> (batch_size * heads, 1, max_len)
-        att_mask = single_head_att_mask.unsqueeze(1).expand(-1, self.config.attention_heads, -1).reshape((-1, max_len)).unsqueeze(1)
+        att_mask = (
+            single_head_att_mask.unsqueeze(1)
+            .expand(-1, self.config.attention_heads, -1)
+            .reshape((-1, max_len))
+            .unsqueeze(1)
+        )
         att_mask = att_mask.expand(-1, max_len, -1)
 
         data = data.transpose(1, 0)  # batch to time major

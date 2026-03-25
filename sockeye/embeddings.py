@@ -14,6 +14,7 @@
 """
 Command-line tool to inspect model embeddings.
 """
+
 import argparse
 import logging
 import sys
@@ -46,14 +47,13 @@ def compute_sims(inputs: pt.Tensor, normalize: bool) -> pt.Tensor:
         logger.info("Normalizing embeddings to unit length")
         inputs = inputs / pt.linalg.norm(inputs, dim=-1, keepdim=True)
     sims = pt.mm(inputs, inputs.transpose(0, 1))
-    sims.fill_diagonal_(-9999999.)
+    sims.fill_diagonal_(-9999999.0)
     return sims
 
 
-def nearest_k(similarity_matrix: pt.Tensor,
-              query_word_id: int,
-              k: int,
-              gamma: float = 1.0) -> Iterable[Tuple[int, float]]:
+def nearest_k(
+    similarity_matrix: pt.Tensor, query_word_id: int, k: int, gamma: float = 1.0
+) -> Iterable[Tuple[int, float]]:
     """
     Returns values and indices of k items with largest similarity.
 
@@ -64,7 +64,9 @@ def nearest_k(similarity_matrix: pt.Tensor,
     :return: List of indices and values of k nearest elements.
     """
     # pylint: disable=unbalanced-tuple-unpacking
-    values, indices = pt.topk((similarity_matrix[query_word_id] / gamma).softmax(0), k=k)
+    values, indices = pt.topk(
+        (similarity_matrix[query_word_id] / gamma).softmax(0), k=k
+    )
     return zip(indices.tolist(), values.tolist())
 
 
@@ -73,15 +75,34 @@ def main():
     Command-line tool to inspect model embeddings.
     """
     setup_main_logger(file_logging=False)
-    params = argparse.ArgumentParser(description='Shows nearest neighbours of input tokens in the embedding space.')
-    params.add_argument('--model', '-m', required=True,
-                        help='Model folder to load config from.')
-    params.add_argument('--checkpoint', '-c', required=False, type=int, default=None,
-                        help='Optional specific checkpoint to load parameters from. Best params otherwise.')
-    params.add_argument('--side', '-s', required=True, choices=['source', 'target'], help='what embeddings to look at')
-    params.add_argument('--norm', '-n', action='store_true', help='normalize embeddings to unit length')
-    params.add_argument('-k', type=int, default=5, help='Number of neighbours to print')
-    params.add_argument('--gamma', '-g', type=float, default=1.0, help='Softmax distribution steepness.')
+    params = argparse.ArgumentParser(
+        description="Shows nearest neighbours of input tokens in the embedding space."
+    )
+    params.add_argument(
+        "--model", "-m", required=True, help="Model folder to load config from."
+    )
+    params.add_argument(
+        "--checkpoint",
+        "-c",
+        required=False,
+        type=int,
+        default=None,
+        help="Optional specific checkpoint to load parameters from. Best params otherwise.",
+    )
+    params.add_argument(
+        "--side",
+        "-s",
+        required=True,
+        choices=["source", "target"],
+        help="what embeddings to look at",
+    )
+    params.add_argument(
+        "--norm", "-n", action="store_true", help="normalize embeddings to unit length"
+    )
+    params.add_argument("-k", type=int, default=5, help="Number of neighbours to print")
+    params.add_argument(
+        "--gamma", "-g", type=float, default=1.0, help="Softmax distribution steepness."
+    )
     args = params.parse_args()
     embeddings(args)
 
@@ -89,9 +110,9 @@ def main():
 def embeddings(args: argparse.Namespace):
     logger.info("Arguments: %s", args)
 
-    sockeye_model, source_vocabs, target_vocabs = model.load_model(args.model,
-                                                                   checkpoint=args.checkpoint,
-                                                                   device=pt.device('cpu'))
+    sockeye_model, source_vocabs, target_vocabs = model.load_model(
+        args.model, checkpoint=args.checkpoint, device=pt.device("cpu")
+    )
     sockeye_model.eval()
 
     if args.side == "source":
@@ -110,8 +131,11 @@ def embeddings(args: argparse.Namespace):
     sims = compute_sims(weights, args.norm)
 
     # weights (vocab, num_target_embed)
-    check_condition(weights.shape[0] == len(vocab),
-                    "vocab and embeddings matrix do not match: %d vs. %d" % (weights.shape[0], len(vocab)))
+    check_condition(
+        weights.shape[0] == len(vocab),
+        "vocab and embeddings matrix do not match: %d vs. %d"
+        % (weights.shape[0], len(vocab)),
+    )
 
     logger.info("Reading from STDin...")
     for line in sys.stdin:
@@ -125,9 +149,12 @@ def embeddings(args: argparse.Namespace):
             print("%s id=%d" % (token, token_id))
             neighbours = nearest_k(sims, token_id, args.k, args.gamma)
             for i, (neighbour_id, score) in enumerate(neighbours, 1):
-                print("  %s id=%d sim=%.4f" % (vocab_inv[neighbour_id], neighbour_id, score))
+                print(
+                    "  %s id=%d sim=%.4f"
+                    % (vocab_inv[neighbour_id], neighbour_id, score)
+                )
         print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

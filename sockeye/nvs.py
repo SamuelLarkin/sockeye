@@ -19,18 +19,24 @@ from . import constants as C
 
 
 class NeuralVocabSelection(pt.nn.Module):
-    def __init__(self,
-                 model_size: int,
-                 vocab_target_size: int,
-                 model_type: str = C.NVS_TYPE_LOGIT_MAX,
-                 dtype: Optional[pt.dtype] = None) -> None:
+    def __init__(
+        self,
+        model_size: int,
+        vocab_target_size: int,
+        model_type: str = C.NVS_TYPE_LOGIT_MAX,
+        dtype: Optional[pt.dtype] = None,
+    ) -> None:
         super().__init__()
         self.vocab_target_size = vocab_target_size
         self.model_type = model_type
 
-        self.project_vocab = pt.nn.Linear(model_size, vocab_target_size, bias=True, dtype=dtype)
+        self.project_vocab = pt.nn.Linear(
+            model_size, vocab_target_size, bias=True, dtype=dtype
+        )
 
-    def forward(self, source_encoded: pt.Tensor, source_length: pt.Tensor, att_mask: pt.Tensor):
+    def forward(
+        self, source_encoded: pt.Tensor, source_length: pt.Tensor, att_mask: pt.Tensor
+    ):
         # TODO: att_mask might need to include prepended token masks
         if self.model_type == C.NVS_TYPE_LOGIT_MAX:
             # ============
@@ -44,7 +50,10 @@ class NeuralVocabSelection(pt.nn.Module):
             # EOS based:
             # ============
             batch_size, max_len, _ = source_encoded.size()
-            source_encoded = source_encoded[pt.arange(0, batch_size, dtype=pt.long), (source_length[:, 0] - 1).long()]
+            source_encoded = source_encoded[
+                pt.arange(0, batch_size, dtype=pt.long),
+                (source_length[:, 0] - 1).long(),
+            ]
             bow_pred = self.project_vocab(source_encoded)
         else:
             raise ValueError("Unknown neural vocabulary selection type.")

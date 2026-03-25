@@ -14,6 +14,7 @@
 """
 A set of utility methods.
 """
+
 import argparse
 import binascii
 import gzip
@@ -62,15 +63,23 @@ def check_version(version: str):
     """
     code_version = parse_version(__version__)
     given_version = parse_version(version)
-    if given_version[0] == '3' and given_version[1] == '0':
+    if given_version[0] == "3" and given_version[1] == "0":
         logger.info(f"Code version: {__version__}")
-        logger.warning(f"Given release version ({version}) does not match code version ({__version__}). "
-                       f"Models with version {version} should be compatible though.")
+        logger.warning(
+            f"Given release version ({version}) does not match code version ({__version__}). "
+            f"Models with version {version} should be compatible though."
+        )
         return
-    check_condition(code_version[0] == given_version[0],
-                    "Given release version (%s) does not match release code version (%s)" % (version, __version__))
-    check_condition(code_version[1] == given_version[1],
-                    "Given major version (%s) does not match major code version (%s)" % (version, __version__))
+    check_condition(
+        code_version[0] == given_version[0],
+        "Given release version (%s) does not match release code version (%s)"
+        % (version, __version__),
+    )
+    check_condition(
+        code_version[1] == given_version[1],
+        "Given major version (%s) does not match major code version (%s)"
+        % (version, __version__),
+    )
 
 
 def load_version(fname: str) -> str:
@@ -121,6 +130,7 @@ def seed_rngs(seed: int) -> None:  # type: ignore
     random.seed(seed)
     try:
         import torch
+
         torch.manual_seed(seed)
         logger.info(f"PyTorch seed: {seed}")
     except ImportError:
@@ -142,8 +152,8 @@ def check_condition(condition: bool, error_message: str):
 class OnlineMeanAndVariance:
     def __init__(self) -> None:
         self._count = 0
-        self._mean = 0.
-        self._M2 = 0.
+        self._mean = 0.0
+        self._M2 = 0.0
 
     def update(self, value: Union[float, int]) -> None:
         self._count += 1
@@ -163,7 +173,7 @@ class OnlineMeanAndVariance:
     @property
     def variance(self) -> float:
         if self._count < 2:
-            return float('nan')
+            return float("nan")
         else:
             return self._M2 / self._count
 
@@ -176,7 +186,7 @@ class OnlineMeanAndVariance:
 def chunks(some_list: List, n: int) -> Iterable[List]:
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(some_list), n):
-        yield some_list[i:i + n]
+        yield some_list[i : i + n]
 
 
 def get_tokens(line: str) -> Iterator[str]:
@@ -193,11 +203,13 @@ def get_tokens(line: str) -> Iterator[str]:
 
 def is_gzip_file(filename: str) -> bool:
     # check for magic gzip number
-    with open(filename, 'rb') as test_f:
-        return binascii.hexlify(test_f.read(2)) == b'1f8b'
+    with open(filename, "rb") as test_f:
+        return binascii.hexlify(test_f.read(2)) == b"1f8b"
 
 
-def smart_open(filename: str, mode: str = "rt", ftype: str = "auto", errors: str = 'replace'):
+def smart_open(
+    filename: str, mode: str = "rt", ftype: str = "auto", errors: str = "replace"
+):
     """
     Returns a file descriptor for filename with UTF-8 encoding.
     If mode is "rt", file is opened read-only.
@@ -213,18 +225,20 @@ def smart_open(filename: str, mode: str = "rt", ftype: str = "auto", errors: str
     :param errors: Encoding error handling during reading. Defaults to 'replace'.
     :return: File descriptor.
     """
-    if ftype in ('gzip', 'gz') \
-            or (ftype == 'auto' and filename.endswith(".gz")) \
-            or (ftype == 'auto' and 'r' in mode and is_gzip_file(filename)):
-            if mode == "rb" or mode == "wb":
-                return gzip.open(filename, mode=mode)
-            else:
-                return gzip.open(filename, mode=mode, encoding='utf-8', errors=errors)
+    if (
+        ftype in ("gzip", "gz")
+        or (ftype == "auto" and filename.endswith(".gz"))
+        or (ftype == "auto" and "r" in mode and is_gzip_file(filename))
+    ):
+        if mode == "rb" or mode == "wb":
+            return gzip.open(filename, mode=mode)
+        else:
+            return gzip.open(filename, mode=mode, encoding="utf-8", errors=errors)
     else:
         if mode == "rb" or mode == "wb":
             return open(filename, mode=mode)
         else:
-            return open(filename, mode=mode, encoding='utf-8', errors=errors)
+            return open(filename, mode=mode, encoding="utf-8", errors=errors)
 
 
 def combine_means(means: List[Optional[float]], num_sents: List[int]) -> float:
@@ -238,10 +252,14 @@ def combine_means(means: List[Optional[float]], num_sents: List[int]) -> float:
     if not means or not num_sents:
         raise ValueError("Invalid input list.")
     check_condition(len(means) == len(num_sents), "List lengths do not match")
-    return sum(num_sent * mean for num_sent, mean in zip(num_sents, means) if mean is not None) / sum(num_sents)
+    return sum(
+        num_sent * mean for num_sent, mean in zip(num_sents, means) if mean is not None
+    ) / sum(num_sents)
 
 
-def combine_stds(stds: List[Optional[float]], means: List[Optional[float]], num_sents: List[int]) -> float:
+def combine_stds(
+    stds: List[Optional[float]], means: List[Optional[float]], num_sents: List[int]
+) -> float:
     """
     Takes a list of standard deviations, means and number of sentences of the same length and computes
     the combined standard deviation.
@@ -253,10 +271,19 @@ def combine_stds(stds: List[Optional[float]], means: List[Optional[float]], num_
     """
     if not stds or not means or not num_sents:
         raise ValueError("Invalid input list.")
-    check_condition(all(len(stds) == len(l) for l in [means, num_sents]), "List lengths do not match") # type: ignore
+    check_condition(
+        all(len(stds) == len(l) for l in [means, num_sents]),
+        "List lengths do not match",
+    )  # type: ignore
     total_mean = combine_means(means, num_sents)
-    return math.sqrt(sum(num_sent * (std**2 + (mean-total_mean)**2) for num_sent, std, mean in zip(num_sents, stds, means)
-                         if std is not None and mean is not None) / sum(num_sents))
+    return math.sqrt(
+        sum(
+            num_sent * (std**2 + (mean - total_mean) ** 2)
+            for num_sent, std, mean in zip(num_sents, stds, means)
+            if std is not None and mean is not None
+        )
+        / sum(num_sents)
+    )
 
 
 def average_tensors(tensors: List[pt.Tensor]) -> pt.Tensor:
@@ -270,11 +297,15 @@ def average_tensors(tensors: List[pt.Tensor]) -> pt.Tensor:
         raise ValueError("tensors is empty.")
     if len(tensors) == 1:
         return tensors[0]
-    check_condition(all(tensors[0].shape == t.shape for t in tensors), "tensor shapes do not match")
+    check_condition(
+        all(tensors[0].shape == t.shape for t in tensors), "tensor shapes do not match"
+    )
     return sum(tensors) / len(tensors)  # type: ignore
 
 
-def gen_prefix_masking(prefix: pt.Tensor, vocab_size: int, dtype: pt.dtype) -> Tuple[pt.Tensor, int]:
+def gen_prefix_masking(
+    prefix: pt.Tensor, vocab_size: int, dtype: pt.dtype
+) -> Tuple[pt.Tensor, int]:
     """
     Generate prefix masks from prefix ids, which are inf everywhere except zero for prefix ids.
 
@@ -289,8 +320,10 @@ def gen_prefix_masking(prefix: pt.Tensor, vocab_size: int, dtype: pt.dtype) -> T
     prefix_masks_sizes.append(vocab_size)
 
     # prefix_masks are inf everywhere except zero for indices of prefix ids.
-    prefix_masks = pt.full(prefix_masks_sizes, fill_value=np.inf, device=prefix.device, dtype=dtype)
-    prefix_masks.scatter_(-1, prefix.to(pt.int64).unsqueeze(-1), 0.)
+    prefix_masks = pt.full(
+        prefix_masks_sizes, fill_value=np.inf, device=prefix.device, dtype=dtype
+    )
+    prefix_masks.scatter_(-1, prefix.to(pt.int64).unsqueeze(-1), 0.0)
     # Note: The use of prefix_masks.scatter_() function is equivalent (but much faster) to
     # prefix_masks[prefix_one_hot != 0] = 0., where
     # prefix_one_hot = pt.nn.functional.one_hot(prefix.to(pt.int64), num_classes=vocab_size).to(prefix.device)
@@ -326,13 +359,20 @@ def shift_prefix_factors(prefix_factors: pt.Tensor) -> pt.Tensor:
     :return new prefix_factors_shift (batch size, length + 1, num of factors)
     """
     prefix_factors_sizes = prefix_factors.size()
-    prefix_factors_shift = pt.zeros(prefix_factors_sizes[0], prefix_factors_sizes[1] + 1, prefix_factors_sizes[2],
-                                    dtype=prefix_factors.dtype, device=prefix_factors.device)
+    prefix_factors_shift = pt.zeros(
+        prefix_factors_sizes[0],
+        prefix_factors_sizes[1] + 1,
+        prefix_factors_sizes[2],
+        dtype=prefix_factors.dtype,
+        device=prefix_factors.device,
+    )
     prefix_factors_shift[:, 1:] = prefix_factors
     return prefix_factors_shift
 
 
-def adjust_first_step_masking(target_prefix: pt.Tensor, first_step_mask: pt.Tensor) -> pt.Tensor:
+def adjust_first_step_masking(
+    target_prefix: pt.Tensor, first_step_mask: pt.Tensor
+) -> pt.Tensor:
     """
     Adjust first_step_masking based on the target prefix
     (Target prefix for each input in the same batch may have a different length. \
@@ -405,20 +445,20 @@ def adjust_first_step_masking(target_prefix: pt.Tensor, first_step_mask: pt.Tens
                      [1 1 0]                       [inf inf 0]
                      [1 1 0]                       [inf inf 0]
     """
-    batch_beam, _  = first_step_mask.size()
+    batch_beam, _ = first_step_mask.size()
     batch, max_prefix_len = target_prefix.size()
     beam_size = batch_beam // batch
     # Step 1
     masking = pt.zeros((batch, max_prefix_len + 1), device=target_prefix.device)
     masking[:, :max_prefix_len] = target_prefix
-    masking = pt.clamp(masking, 0., 1.) # force all non zero ids to 1
+    masking = pt.clamp(masking, 0.0, 1.0)  # force all non zero ids to 1
     masking = pt.roll(masking, 1, -1)
-    masking[:, 0] = 1.
+    masking[:, 0] = 1.0
 
     # Step 2
     masking = masking.unsqueeze(1).expand(-1, beam_size, -1).reshape(batch_beam, -1)
     first_step_mask = first_step_mask.expand(-1, masking.size(-1)).clone()
-    first_step_mask.masked_fill_(masking == 0., 0.)
+    first_step_mask.masked_fill_(masking == 0.0, 0.0)
     return first_step_mask
 
 
@@ -430,16 +470,19 @@ def parse_metrics_line(line_number: int, line: str) -> Dict[str, Any]:
     :param line: A line from the Sockeye metrics file.
     :return: Dictionary of metric names (e.g. perplexity-train) mapping to a list of values.
     """
-    fields = line.split('\t')
+    fields = line.split("\t")
     checkpoint = int(fields[0])
-    check_condition(line_number == checkpoint,
-                    "Line (%d) and loaded checkpoint (%d) do not align." % (line_number, checkpoint))
+    check_condition(
+        line_number == checkpoint,
+        "Line (%d) and loaded checkpoint (%d) do not align."
+        % (line_number, checkpoint),
+    )
     metric = dict()  # type: Dict[str, Any]
     for field in fields[1:]:
         key, value = field.split("=", 1)
-        if value == 'True' or value == 'False':
-            metric[key] = (value == 'True')
-        elif value == 'None':
+        if value == "True" or value == "False":
+            metric[key] = value == "True"
+        elif value == "None":
             metric[key] = None
         else:
             metric[key] = float(value)
@@ -465,9 +508,14 @@ def write_metrics_file(metrics: List[Dict[str, Any]], path: str):
     :param metrics: metrics data.
     :param path: Path to write to.
     """
-    with open(path, 'w') as metrics_out:
+    with open(path, "w") as metrics_out:
         for checkpoint, metric_dict in enumerate(metrics, 1):
-            metrics_str = "\t".join(["{}={}".format(name, value) for name, value in sorted(metric_dict.items())])
+            metrics_str = "\t".join(
+                [
+                    "{}={}".format(name, value)
+                    for name, value in sorted(metric_dict.items())
+                ]
+            )
             metrics_out.write("{}\t{}\n".format(checkpoint, metrics_str))
 
 
@@ -480,7 +528,7 @@ def get_validation_metric_points(model_path: str, metric: str):
     """
     metrics_path = os.path.join(model_path, C.METRICS_NAME)
     data = read_metrics_file(metrics_path)
-    return [(d['%s-val' % metric], cp) for cp, d in enumerate(data, 1)]
+    return [(d["%s-val" % metric], cp) for cp, d in enumerate(data, 1)]
 
 
 def grouper(iterable: Iterable, size: int) -> Iterable:
@@ -540,7 +588,7 @@ def get_torch_dtype(dtype: Union[pt.dtype, str]) -> pt.dtype:
         return dtype
     if dtype in _STRING_TO_TORCH_DTYPE:
         return _STRING_TO_TORCH_DTYPE[dtype]
-    raise ValueError(f'Cannot convert to Torch dtype: {dtype}')
+    raise ValueError(f"Cannot convert to Torch dtype: {dtype}")
 
 
 _STRING_TO_NUMPY_DTYPE = {
@@ -557,7 +605,7 @@ def get_numpy_dtype(dtype: Union[np.dtype, str]):
         return dtype
     if dtype in _STRING_TO_NUMPY_DTYPE:
         return _STRING_TO_NUMPY_DTYPE[dtype]
-    raise ValueError(f'Cannot convert to NumPy dtype: {dtype}')
+    raise ValueError(f"Cannot convert to NumPy dtype: {dtype}")
 
 
 def log_parameters(model: pt.nn.Module):
@@ -587,13 +635,20 @@ def log_parameters(model: pt.nn.Module):
             total_shared += param.shape.numel()
             shared_parameter_names.append(" = ".join(names))
     total_parameters = total_learned + total_fixed
-    logger.info("# of parameters: %d | trainable: %d (%.2f%%) | shared: %d (%.2f%%) | fixed: %d (%.2f%%)",
-                total_parameters,
-                total_learned, total_learned / total_parameters * 100,
-                total_shared, total_shared / total_parameters * 100,
-                total_fixed, total_fixed / total_parameters * 100)
+    logger.info(
+        "# of parameters: %d | trainable: %d (%.2f%%) | shared: %d (%.2f%%) | fixed: %d (%.2f%%)",
+        total_parameters,
+        total_learned,
+        total_learned / total_parameters * 100,
+        total_shared,
+        total_shared / total_parameters * 100,
+        total_fixed,
+        total_fixed / total_parameters * 100,
+    )
     logger.info("Trainable parameters: \n%s", pprint.pformat(learned_parameter_names))
-    logger.info("Shared parameters: \n%s", pprint.pformat(shared_parameter_names, width=120))
+    logger.info(
+        "Shared parameters: \n%s", pprint.pformat(shared_parameter_names, width=120)
+    )
     logger.info("Fixed parameters:\n%s", pprint.pformat(fixed_parameter_names))
 
 
@@ -606,7 +661,6 @@ def no_context():
 
 
 class SingleProcessPool:
-
     def map(self, func, iterable):
         return list(map(func, iterable))
 
@@ -633,7 +687,9 @@ def update_dict(dest: Dict[Any, Any], source: Dict[Any, Any]):
             if key not in dest:
                 dest[key] = {}
             if not isinstance(dest[key], dict):
-                raise ValueError(f'Type mismatch for key {key}: {type(source[key])} vs {type(dest[key])}')
+                raise ValueError(
+                    f"Type mismatch for key {key}: {type(source[key])} vs {type(dest[key])}"
+                )
             update_dict(dest[key], source[key])
         else:
             dest[key] = source[key]
@@ -648,7 +704,7 @@ def update_dict_with_prefix_kv(dest: Dict[Any, Any], prefix_kv: Dict[Any, Any]):
                       form [prefix.]key (e.g., prefix_field1.prefix_field2.key).
     """
     for keys, value in prefix_kv.items():
-        split_keys = keys.split('.')
+        split_keys = keys.split(".")
         prefix = split_keys[:-1]
         key = split_keys[-1]
         _dict = dest
@@ -675,7 +731,7 @@ def get_local_rank() -> int:
     return int(os.environ[C.DIST_ENV_LOCAL_RANK])
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def broadcast_object(obj: T, src: int = 0) -> T:
@@ -698,6 +754,7 @@ def all_gather_object(obj: T) -> List[T]:
 # Track whether DeepSpeed has been initialized
 _using_deepspeed = False
 
+
 def init_deepspeed():
     """
     Make sure all of the DeepSpeed modules we use can be imported, initialize
@@ -708,11 +765,14 @@ def init_deepspeed():
     try:
         import deepspeed  # pylint: disable=E0401
         import deepspeed.utils.zero_to_fp32  # pylint: disable=E0401
+
         deepspeed.init_distributed()
         _using_deepspeed = True
     except:
-        raise RuntimeError('To train models with DeepSpeed (https://www.deepspeed.ai/), '
-                           'install the module with `pip install deepspeed`.')
+        raise RuntimeError(
+            "To train models with DeepSpeed (https://www.deepspeed.ai/), "
+            "install the module with `pip install deepspeed`."
+        )
 
 
 def using_deepspeed() -> bool:
@@ -723,6 +783,7 @@ def using_deepspeed() -> bool:
 # Track whether Faiss has been confirmed importable
 _faiss_checked = False
 
+
 def check_import_faiss():
     """
     Make sure the faiss module can be imported.
@@ -732,28 +793,40 @@ def check_import_faiss():
         try:
             _faiss_checked = True
         except:
-            raise RuntimeError('To run kNN-MT models, please install faiss by following '
-                               'https://github.com/facebookresearch/faiss/blob/main/INSTALL.md')
+            raise RuntimeError(
+                "To run kNN-MT models, please install faiss by following "
+                "https://github.com/facebookresearch/faiss/blob/main/INSTALL.md"
+            )
 
 
-def count_seq_len(sample: str, count_type: str = 'char', replace_tokens: Optional[List] = None) -> int:
+def count_seq_len(
+    sample: str, count_type: str = "char", replace_tokens: Optional[List] = None
+) -> int:
     """
     Count sequence length, after replacing (optional) token/s.
     """
     if replace_tokens is not None:
         for tokens in replace_tokens:
-            sample = sample.replace(tokens, '')
+            sample = sample.replace(tokens, "")
     if count_type == C.SEQ_LEN_IN_CHARACTERS:
-        return len(sample.replace(C.TOKEN_SEPARATOR, ''))
+        return len(sample.replace(C.TOKEN_SEPARATOR, ""))
     elif count_type == C.SEQ_LEN_IN_TOKENS:
         return len(sample.split(C.TOKEN_SEPARATOR))
     else:
-        raise SockeyeError("Sequence length count type '%s' unknown. "
-                           "Choices are: %s" % (count_type, [C.SEQ_LEN_IN_CHARACTERS, C.SEQ_LEN_IN_TOKENS]))
+        raise SockeyeError(
+            "Sequence length count type '%s' unknown. "
+            "Choices are: %s"
+            % (count_type, [C.SEQ_LEN_IN_CHARACTERS, C.SEQ_LEN_IN_TOKENS])
+        )
 
 
-def compute_isometric_score(hypothesis: str, hypothesis_score: float, source: str,
-                            isometric_metric: str = 'isometric-ratio', isometric_alpha: float = 0.5):
+def compute_isometric_score(
+    hypothesis: str,
+    hypothesis_score: float,
+    source: str,
+    isometric_metric: str = "isometric-ratio",
+    isometric_alpha: float = 0.5,
+):
     """
     Compute hypothesis to source isometric score using sample char length
     and isometric metric (ratio, diff, lc).
@@ -761,7 +834,9 @@ def compute_isometric_score(hypothesis: str, hypothesis_score: float, source: st
         - isometric-ratio/lc: https://arxiv.org/pdf/2110.03847.pdf
     :return isometric score
     """
-    count_type = C.SEQ_LEN_IN_CHARACTERS  # for isometric scoring, count length in characters
+    count_type = (
+        C.SEQ_LEN_IN_CHARACTERS
+    )  # for isometric scoring, count length in characters
     replace_tokens = C.TOKEN_SEGMENTATION_MARKERS
 
     hypothesis_len = count_seq_len(hypothesis, count_type, replace_tokens)
@@ -769,17 +844,19 @@ def compute_isometric_score(hypothesis: str, hypothesis_score: float, source: st
 
     if isometric_metric == C.RERANK_ISOMETRIC_LC:
         abs_len_diff = abs(hypothesis_len - source_len)
-        isometric_score = (abs_len_diff*100) / source_len if source_len else abs_len_diff*100
+        isometric_score = (
+            (abs_len_diff * 100) / source_len if source_len else abs_len_diff * 100
+        )
 
         return isometric_score
     else:
         if isometric_metric == C.RERANK_ISOMETRIC_RATIO:
-            len_ratio = hypothesis_len/source_len if source_len else hypothesis_len
-            synchrony_score = float(1/(1 + len_ratio))
+            len_ratio = hypothesis_len / source_len if source_len else hypothesis_len
+            synchrony_score = float(1 / (1 + len_ratio))
 
         if isometric_metric == C.RERANK_ISOMETRIC_DIFF:
             abs_len_diff = abs(hypothesis_len - source_len)
-            synchrony_score = float(1/(1 + abs_len_diff))
+            synchrony_score = float(1 / (1 + abs_len_diff))
 
         # isometric score, if alpha=0.0 takes model prediction score
         pred_sub_score = (1 - isometric_alpha) * float(hypothesis_score)
@@ -804,17 +881,17 @@ def init_device(args: argparse.Namespace) -> pt.device:
 
     use_cpu = args.use_cpu
     if not use_cpu and not pt.cuda.is_available():
-        logger.info('CUDA not available, defaulting to CPU device')
+        logger.info("CUDA not available, defaulting to CPU device")
         use_cpu = True
     if use_cpu:
-        return pt.device('cpu')
+        return pt.device("cpu")
 
-    device = pt.device('cuda', get_local_rank() if is_distributed() else args.device_id)
+    device = pt.device("cuda", get_local_rank() if is_distributed() else args.device_id)
     # Ensure that GPU operations use the correct device by default
     pt.cuda.set_device(device)
     if args.tf32:
         pt.backends.cuda.matmul.allow_tf32 = True
-        logger.info('CUDA: allow tf32 (float32 but with 10 bits precision)')
+        logger.info("CUDA: allow tf32 (float32 but with 10 bits precision)")
 
     return device
 
@@ -839,7 +916,11 @@ def fault_tolerant_symlink(src: str, dst: str, max_retries: int = 6):
             if retries >= max_retries:
                 break
             wait_time = 2**retries
-            logger.warn(f'Error detected when calling symlink: {error}. Retrying in {wait_time} seconds.')
+            logger.warn(
+                f"Error detected when calling symlink: {error}. Retrying in {wait_time} seconds."
+            )
             time.sleep(wait_time)
             retries += 1
-    raise OSError(f'Max retries exceeded when attempting to create symlink: \'{src}\' -> \'{dst}\'')
+    raise OSError(
+        f"Max retries exceeded when attempting to create symlink: '{src}' -> '{dst}'"
+    )

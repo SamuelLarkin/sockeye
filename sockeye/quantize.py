@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    params = arguments.ConfigArgumentParser(description='Quantize an existing model.')
+    params = arguments.ConfigArgumentParser(description="Quantize an existing model.")
     arguments.add_quantize_args(params)
     arguments.add_logging_args(params)
     args = params.parse_args()
@@ -46,25 +46,27 @@ def quantize(args: argparse.Namespace):
     params_fname = os.path.join(args.model, C.PARAMS_BEST_NAME)
     config_fname = os.path.join(args.model, C.CONFIG_NAME)
 
-    model, _, _ = load_model(args.model, device=pt.device('cpu'))
+    model, _, _ = load_model(args.model, device=pt.device("cpu"))
     original_dtype = model.config.dtype
 
     if original_dtype == args.dtype:
-        logger.info(f'Model already has dtype {args.dtype}. Skipping quantization.')
+        logger.info(f"Model already has dtype {args.dtype}. Skipping quantization.")
         return
 
-    backup_params_fname = f'{params_fname}.{original_dtype}'
-    backup_config_fname = f'{config_fname}.{original_dtype}'
+    backup_params_fname = f"{params_fname}.{original_dtype}"
+    backup_config_fname = f"{config_fname}.{original_dtype}"
 
     for fname in (backup_params_fname, backup_config_fname):
         if os.path.exists(fname):
-            raise FileExistsError(f'File {fname} exists. To quantize this model, make sure that {params_fname} and '
-                                  f'{config_fname} match the original dtype and that {backup_params_fname} and '
-                                  f'{backup_config_fname} do not exist.')
+            raise FileExistsError(
+                f"File {fname} exists. To quantize this model, make sure that {params_fname} and "
+                f"{config_fname} match the original dtype and that {backup_params_fname} and "
+                f"{backup_config_fname} do not exist."
+            )
 
-    logger.info(f'Moving {params_fname} -> {backup_params_fname}')
+    logger.info(f"Moving {params_fname} -> {backup_params_fname}")
     os.rename(params_fname, backup_params_fname)
-    logger.info(f'Moving {config_fname} -> {backup_config_fname}')
+    logger.info(f"Moving {config_fname} -> {backup_config_fname}")
     os.rename(config_fname, backup_config_fname)
 
     model.cast(args.dtype)
@@ -73,5 +75,5 @@ def quantize(args: argparse.Namespace):
     model.save_config(args.model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

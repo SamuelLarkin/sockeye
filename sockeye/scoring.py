@@ -14,6 +14,7 @@
 """
 Code for scoring.
 """
+
 import logging
 import math
 import time
@@ -34,22 +35,28 @@ logger = logging.getLogger(__name__)
 
 
 class BatchScorer(pt.nn.Module):
-
-    def __init__(self,
-                 scorer: CandidateScorer,
-                 score_type: str = C.SCORING_TYPE_DEFAULT,
-                 constant_length_ratio: Optional[float] = None,
-                 softmax_temperature: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        scorer: CandidateScorer,
+        score_type: str = C.SCORING_TYPE_DEFAULT,
+        constant_length_ratio: Optional[float] = None,
+        softmax_temperature: Optional[float] = None,
+    ) -> None:
         super().__init__()
         self.score_type = score_type
         self.scorer = scorer
         self.constant_length_ratio = constant_length_ratio
-        assert softmax_temperature is None, 'not implemented'
+        assert softmax_temperature is None, "not implemented"
 
-    def forward(self,
-                logits, labels,
-                length_ratio, source_length, target_length,
-                factor_logits_and_labels: Optional[List[Tuple[pt.Tensor, pt.Tensor]]] = None):
+    def forward(
+        self,
+        logits,
+        labels,
+        length_ratio,
+        source_length,
+        target_length,
+        factor_logits_and_labels: Optional[List[Tuple[pt.Tensor, pt.Tensor]]] = None,
+    ):
         """
         :param logits: Model logits for primary output words. Shape: (batch, length, vocab_size).
         :param labels: Gold targets. Shape: (batch, length).
@@ -69,7 +76,9 @@ class BatchScorer(pt.nn.Module):
             token_scores = -token_scores
 
         # Mask pad positions, sum, then apply length penalty. Shape: (batch_size, 1)
-        scores = token_scores.masked_fill_(labels == C.PAD_ID, .0).sum(dim=-1, keepdims=True)
+        scores = token_scores.masked_fill_(labels == C.PAD_ID, 0.0).sum(
+            dim=-1, keepdims=True
+        )
         if self.constant_length_ratio is not None and self.constant_length_ratio > 0.0:
             predicted_output_length = source_length * self.constant_length_ratio
         else:
@@ -80,10 +89,14 @@ class BatchScorer(pt.nn.Module):
             factor_scores = []  # type: List[pt.Tensor]
             for factor_logit, factor_label in factor_logits_and_labels:
                 factor_logprobs = factor_logit.log_softmax(dim=-1)
-                factor_token_scores = factor_logprobs.gather(dim=-1, index=factor_label.unsqueeze(-1)).squeeze(-1)
+                factor_token_scores = factor_logprobs.gather(
+                    dim=-1, index=factor_label.unsqueeze(-1)
+                ).squeeze(-1)
                 if self.score_type == C.SCORING_TYPE_NEGLOGPROB:
                     factor_token_scores = -factor_token_scores
-                fs = factor_token_scores.masked_fill_(factor_label == C.PAD_ID, .0).sum(dim=-1, keepdims=True)  # type: ignore
+                fs = factor_token_scores.masked_fill_(
+                    factor_label == C.PAD_ID, 0.0
+                ).sum(dim=-1, keepdims=True)  # type: ignore
                 # Note: factor_scores are not normalized by length
                 factor_scores.append(fs)
             scores = pt.cat([scores] + factor_scores, dim=1)
@@ -103,12 +116,14 @@ class Scorer:
     :param device: Torch device to load batches to (should be set to model device).
     """
 
-    def __init__(self,
-                 model: SockeyeModel,
-                 batch_scorer: BatchScorer,
-                 source_vocabs: List[vocab.Vocab],
-                 target_vocabs: List[vocab.Vocab],
-                 device: pt.device) -> None:
+    def __init__(
+        self,
+        model: SockeyeModel,
+        batch_scorer: BatchScorer,
+        source_vocabs: List[vocab.Vocab],
+        target_vocabs: List[vocab.Vocab],
+        device: pt.device,
+    ) -> None:
         self.source_vocab_inv = vocab.reverse_vocab(source_vocabs[0])
         self.target_vocab_inv = vocab.reverse_vocab(target_vocabs[0])
         self.model = model
@@ -123,27 +138,40 @@ class Scorer:
         # TODO: scoring should support multiple devices
         batch = batch.load(self.device)
 
-        model_inputs = (batch.source, batch.source_length, batch.target, batch.target_length)
+        model_inputs = (
+            batch.source,
+            batch.source_length,
+            batch.target,
+            batch.target_length,
+        )
         if self.traced_model is None:
             self.traced_model = pt.jit.trace(self.model, model_inputs, strict=False)
         outputs = self.traced_model(*model_inputs)  # type: Dict[str, pt.Tensor]
 
         # batch.source_length[:, 0] contains total source length
-        scorer_inputs = [outputs[C.LOGITS_NAME],
-                         batch.labels[C.TARGET_LABEL_NAME].long(),
-                         outputs.get(C.LENRATIO_NAME, pt.zeros_like(batch.source_length[:, 0])),
-                         batch.source_length[:, 0],
-                         batch.target_length]  # type: List[Union[pt.Tensor, List[Tuple[pt.Tensor, pt.Tensor]]]]
+        scorer_inputs = [
+            outputs[C.LOGITS_NAME],
+            batch.labels[C.TARGET_LABEL_NAME].long(),
+            outputs.get(C.LENRATIO_NAME, pt.zeros_like(batch.source_length[:, 0])),
+            batch.source_length[:, 0],
+            batch.target_length,
+        ]  # type: List[Union[pt.Tensor, List[Tuple[pt.Tensor, pt.Tensor]]]]
 
         if self.num_target_factors > 1:
-            factor_logits_and_labels = [(outputs[C.FACTOR_LOGITS_NAME % i],
-                                         batch.labels[C.TARGET_FACTOR_LABEL_NAME % i].long())
-                                        for i in range(1, self.num_target_factors)]
+            factor_logits_and_labels = [
+                (
+                    outputs[C.FACTOR_LOGITS_NAME % i],
+                    batch.labels[C.TARGET_FACTOR_LABEL_NAME % i].long(),
+                )
+                for i in range(1, self.num_target_factors)
+            ]
             scorer_inputs.append(factor_logits_and_labels)
 
         if self.traced_batch_scorer is None:
             logger.debug("Tracing batch_scorer")
-            self.traced_batch_scorer = pt.jit.trace(self.batch_scorer, scorer_inputs, strict=False)
+            self.traced_batch_scorer = pt.jit.trace(
+                self.batch_scorer, scorer_inputs, strict=False
+            )
         scores = self.traced_batch_scorer(*scorer_inputs)  # (batch, num_target_factors)
         scores_cpu = scores.cpu()
         if self.model.dtype == pt.bfloat16:
@@ -152,8 +180,10 @@ class Scorer:
         return scores_cpu.numpy()
 
     @pt.inference_mode(True)
-    def score(self, score_iter: data_io.BaseParallelSampleIter, output_handler: OutputHandler):
-        total_time = 0.
+    def score(
+        self, score_iter: data_io.BaseParallelSampleIter, output_handler: OutputHandler
+    ):
+        total_time = 0.0
         sentence_no = 0
         batch_no = 0
         for batch_no, batch in enumerate(score_iter, 1):
@@ -161,16 +191,24 @@ class Scorer:
             batch_scores = self.score_batch(batch)
             batch_time = time.time() - batch_tic
             total_time += batch_time
-            for sentno, (source, target, scores) in enumerate(zip(batch.source[:, :, 0],
-                                                                  batch.target[:, :, 0],
-                                                                  batch_scores), 1):
+            for sentno, (source, target, scores) in enumerate(
+                zip(batch.source[:, :, 0], batch.target[:, :, 0], batch_scores), 1
+            ):
                 sentence_no += 1
 
                 # Transform arguments in preparation for printing
                 source_ids = source.tolist()
-                source_tokens = list(data_io.ids2tokens(source_ids, self.source_vocab_inv, self.exclude_list))
+                source_tokens = list(
+                    data_io.ids2tokens(
+                        source_ids, self.source_vocab_inv, self.exclude_list
+                    )
+                )
                 target_ids = target.tolist()
-                target_tokens = list(data_io.ids2tokens(target_ids, self.target_vocab_inv, self.exclude_list))
+                target_tokens = list(
+                    data_io.ids2tokens(
+                        target_ids, self.target_vocab_inv, self.exclude_list
+                    )
+                )
                 target_string = C.TOKEN_SEPARATOR.join(target_tokens)
 
                 # Report a score of -inf for invalid sentence pairs (empty source and/or target)
@@ -178,16 +216,26 @@ class Scorer:
                     scores = [-np.inf] * self.num_target_factors
 
                 # Output handling routines require us to make use of inference classes.
-                output_handler.handle(inference.TranslatorInput(sentence_no, source_tokens),
-                                      inference.TranslatorOutput(sentence_no, target_string,
-                                                                 target_tokens,
-                                                                 score=scores[0],
-                                                                 factor_scores=scores[1:]),
-                                      batch_time)
+                output_handler.handle(
+                    inference.TranslatorInput(sentence_no, source_tokens),
+                    inference.TranslatorOutput(
+                        sentence_no,
+                        target_string,
+                        target_tokens,
+                        score=scores[0],
+                        factor_scores=scores[1:],
+                    ),
+                    batch_time,
+                )
 
         if sentence_no != 0:
-            logger.info("Processed %d lines in %d batches. Total time: %.4f, sec/sent: %.4f, sent/sec: %.4f",
-                        sentence_no, math.ceil(sentence_no / batch_no), total_time,
-                        total_time / sentence_no, sentence_no / total_time)
+            logger.info(
+                "Processed %d lines in %d batches. Total time: %.4f, sec/sent: %.4f, sent/sec: %.4f",
+                sentence_no,
+                math.ceil(sentence_no / batch_no),
+                total_time,
+                total_time / sentence_no,
+                sentence_no / total_time,
+            )
         else:
             logger.info("Processed 0 lines.")

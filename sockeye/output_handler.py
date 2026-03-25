@@ -22,8 +22,9 @@ from sockeye.utils import smart_open
 from . import inference
 
 
-def get_output_handler(output_type: str,
-                       output_fname: Optional[str] = None) -> 'OutputHandler':
+def get_output_handler(
+    output_type: str, output_fname: Optional[str] = None
+) -> "OutputHandler":
     """
 
     :param output_type: Type of output handler.
@@ -31,7 +32,9 @@ def get_output_handler(output_type: str,
     :raises: ValueError for unknown output_type.
     :return: Output handler.
     """
-    output_stream = sys.stdout if output_fname is None else smart_open(output_fname, mode='w')
+    output_stream = (
+        sys.stdout if output_fname is None else smart_open(output_fname, mode="w")
+    )
     if output_type == C.OUTPUT_HANDLER_TRANSLATION:
         return StringOutputHandler(output_stream)
     elif output_type == C.OUTPUT_HANDLER_SCORE:
@@ -56,10 +59,12 @@ class OutputHandler(ABC):
     """
 
     @abstractmethod
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
@@ -86,10 +91,12 @@ class StringOutputHandler(OutputHandler):
     def __init__(self, stream):
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
@@ -112,16 +119,22 @@ class StringWithScoreOutputHandler(OutputHandler):
     def __init__(self, stream):
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
         :param t_walltime: Total walltime for translation.
         """
-        print("{:.6f}\t{}".format(t_output.score, t_output.translation), file=self.stream, flush=True)
+        print(
+            "{:.6f}\t{}".format(t_output.score, t_output.translation),
+            file=self.stream,
+            flush=True,
+        )
 
     def reports_score(self) -> bool:
         return True
@@ -137,18 +150,22 @@ class ScoreOutputHandler(OutputHandler):
     def __init__(self, stream):
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
         :param t_walltime: Total walltime for translation.
         """
         result = "{:.6f}".format(t_output.score)
-        if hasattr(t_output, 'factor_scores') and t_output.factor_scores is not None:
-            factor_scores = "\t".join("{:.6f}".format(fs) for fs in t_output.factor_scores)
+        if hasattr(t_output, "factor_scores") and t_output.factor_scores is not None:
+            factor_scores = "\t".join(
+                "{:.6f}".format(fs) for fs in t_output.factor_scores
+            )
             result = f"{result}\t{factor_scores}"
         print(result, file=self.stream, flush=True)
 
@@ -166,18 +183,26 @@ class PairWithScoreOutputHandler(OutputHandler):
     def __init__(self, stream):
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
         :param t_walltime: Total walltime for translation.
         """
-        print("{:.6f}\t{}\t{}".format(t_output.score,
-                                      C.TOKEN_SEPARATOR.join(t_input.tokens),
-                                      t_output.translation), file=self.stream, flush=True)
+        print(
+            "{:.6f}\t{}\t{}".format(
+                t_output.score,
+                C.TOKEN_SEPARATOR.join(t_input.tokens),
+                t_output.translation,
+            ),
+            file=self.stream,
+            flush=True,
+        )
 
     def reports_score(self) -> bool:
         return True
@@ -188,22 +213,29 @@ class BenchmarkOutputHandler(StringOutputHandler):
     Output handler to write detailed benchmark information to a stream.
     """
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
         :param t_walltime: Total walltime for translation.
         """
-        print("input=%s\toutput=%s\tinput_tokens=%d\toutput_tokens=%d\ttranslation_time=%0.4f" %
-              (C.TOKEN_SEPARATOR.join(t_input.tokens),
-               t_output.translation,
-               len(t_input.tokens),
-               len(t_output.tokens),
-               t_walltime),
-              file=self.stream, flush=True)
+        print(
+            "input=%s\toutput=%s\tinput_tokens=%d\toutput_tokens=%d\ttranslation_time=%0.4f"
+            % (
+                C.TOKEN_SEPARATOR.join(t_input.tokens),
+                t_output.translation,
+                len(t_input.tokens),
+                len(t_output.tokens),
+                t_walltime,
+            ),
+            file=self.stream,
+            flush=True,
+        )
 
     def reports_score(self) -> bool:
         return False
@@ -218,10 +250,12 @@ class JSONOutputHandler(OutputHandler):
     def __init__(self, stream) -> None:
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         Outputs a JSON object of the fields in the `TranslatorOutput` object.
         """
@@ -241,17 +275,21 @@ class FactoredStringOutputHandler(OutputHandler):
     def __init__(self, stream):
         self.stream = stream
 
-    def handle(self,
-               t_input: inference.TranslatorInput,
-               t_output: inference.TranslatorOutput,
-               t_walltime: float = 0.):
+    def handle(
+        self,
+        t_input: inference.TranslatorInput,
+        t_output: inference.TranslatorOutput,
+        t_walltime: float = 0.0,
+    ):
         """
         :param t_input: Translator input.
         :param t_output: Translator output.
         :param t_walltime: Total walltime for translation.
         """
-        factored_string = C.TOKEN_SEPARATOR.join(C.DEFAULT_FACTOR_DELIMITER.join(factors) for factors in
-                                                 zip(*chain([t_output.tokens], t_output.factor_tokens)))
+        factored_string = C.TOKEN_SEPARATOR.join(
+            C.DEFAULT_FACTOR_DELIMITER.join(factors)
+            for factors in zip(*chain([t_output.tokens], t_output.factor_tokens))
+        )
         print(factored_string, file=self.stream, flush=True)
 
     def reports_score(self) -> bool:
