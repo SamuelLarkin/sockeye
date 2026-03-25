@@ -205,7 +205,7 @@ class EarlyStoppingTrainer:
         self.device = device
         self.using_amp = using_amp
         if using_amp:
-            self._scaler = torch.cuda.amp.GradScaler()
+		self._scaler = torch.amp.GradScaler()
         self.using_apex_amp = using_apex_amp
         self.state = None  # type: Optional[TrainState]
         self._speedometer = Speedometer(frequency=C.MEASURE_SPEED_EVERY, auto_reset=False)
@@ -356,7 +356,7 @@ class EarlyStoppingTrainer:
         :return: List loss values.
         """
         batch = batch.load(device=self.device)
-        with torch.cuda.amp.autocast(cache_enabled=False) if self.using_amp else utils.no_context():  # type: ignore
+        with torch.amp.autocast(device_type=self.device.type, cache_enabled=True) if self.using_amp else utils.no_context():  # type: ignore
             # Forward + loss
             sum_losses, loss_values, num_samples = self.model_object(batch.source, batch.source_length,
                                                                      batch.target, batch.target_length, batch.labels)

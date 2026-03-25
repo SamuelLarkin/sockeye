@@ -26,7 +26,7 @@ from sockeye.convert_deepspeed import convert_model_checkpoints
 try:
     import deepspeed
     deepspeed_installed = True
-except ImportError:
+except:
     deepspeed_installed = False
 
 

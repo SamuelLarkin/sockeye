@@ -808,15 +808,14 @@ def init_device(args: argparse.Namespace) -> pt.device:
         logger.info('CUDA not available, defaulting to CPU device')
         use_cpu = True
     if use_cpu:
-        return pt.device('cpu')
+        return pt.device('mps')
 
-    device = pt.device('cuda', get_local_rank() if is_distributed() else args.device_id)
+    device = pt.device('mps', get_local_rank() if is_distributed() else args.device_id)
     # Ensure that GPU operations use the correct device by default
-    pt.cuda.set_device(device)
-    if args.tf32:
-        pt.backends.cuda.matmul.allow_tf32 = True
-        logger.info('CUDA: allow tf32 (float32 but with 10 bits precision)')
-
+    #pt.cuda.set_device(device)
+    #if args.tf32:
+        #pt.backends.cuda.matmul.allow_tf32 = True
+        #logger.info('CUDA: allow tf32 (float32 but with 10 bits precision)')
     return device
 
 

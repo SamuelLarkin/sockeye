@@ -1149,7 +1149,7 @@ def train(args: argparse.Namespace, custom_metrics_logger: Optional[Callable] = 
         # dtypes will match during AMP training. Disable the weight cache for
         # compatibility with tracing. See:
         # https://github.com/pytorch/pytorch/pull/63552
-        with torch.cuda.amp.autocast(cache_enabled=False) if args.amp else utils.no_context():  # type: ignore
+        with torch.autocast(device_type="mps", cache_enabled=False) if args.amp else utils.no_context():  # type: ignore
             training_model = torch.jit.trace(training_model, (batch.source, batch.source_length,
                                                             batch.target, batch.target_length), strict=False)
         eval_iter.reset()
