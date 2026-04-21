@@ -1201,7 +1201,7 @@ def train(args: argparse.Namespace, custom_metrics_logger: Optional[Callable] = 
         checkpoint_decoder = create_checkpoint_decoder(args, device, sockeye_model, source_vocabs, target_vocabs)
 
     # Clean up GPU and CPU memory used during initialization
-    torch.cuda.empty_cache()
+    torch.mps.empty_cache()
     gc.collect()
 
     training_state = trainer.fit(train_iter=train_iter, validation_iter=eval_iter,
@@ -1211,13 +1211,15 @@ def train(args: argparse.Namespace, custom_metrics_logger: Optional[Callable] = 
         # Free the memory used during training
         del model_object
         del sockeye_model
-        torch.cuda.empty_cache()
+        torch.mps.empty_cache()
         gc.collect()
         # Convert parameter directories (DeepSpeed checkpoints) to parameter
         # files (regular float32). This does not affect the DeepSpeed checkpoint
         # stored as part of the training state that enables continuing training.
         convert_deepspeed.convert_model_checkpoints(trainer_config.output_dir, keep_deepspeed=False)
 
+    #MARC
+    torch.mps.empty_cache()
     return training_state
 
 

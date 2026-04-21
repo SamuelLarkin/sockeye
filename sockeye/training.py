@@ -14,6 +14,7 @@
 """
 Code for training
 """
+import gc
 import glob
 import logging
 import os
@@ -205,7 +206,7 @@ class EarlyStoppingTrainer:
         self.device = device
         self.using_amp = using_amp
         if using_amp:
-		self._scaler = torch.amp.GradScaler()
+                self._scaler = torch.amp.GradScaler()
         self.using_apex_amp = using_apex_amp
         self.state = None  # type: Optional[TrainState]
         self._speedometer = Speedometer(frequency=C.MEASURE_SPEED_EVERY, auto_reset=False)
@@ -343,6 +344,8 @@ class EarlyStoppingTrainer:
                     self._save_lr_scheduler(self.best_lr_scheduler_fname)
         for metric in train_metrics:
             metric.reset()
+            torch.mps.empty_cache()
+            gc.collect()
         if self.checkpoint_callback:
             self.checkpoint_callback(self.state.checkpoint)
 
@@ -610,7 +613,9 @@ class EarlyStoppingTrainer:
                 "learning-rate": (self.optimizer_config.lr if self.lr_scheduler is None
                                   else self.lr_scheduler.get_last_lr()[0]),
                 "time-elapsed": self.state.time_elapsed,
-                "max-gpu-memory": torch.cuda.max_memory_allocated(self.device),
+                #"max-gpu-memory": torch.cuda.max_memory_allocated(self.device),
+                #"max-gpu-memory": torch.max_memory_allocated(self.device),
+                #"max-gpu-memory": torch.mps.current_allocated_memory(),
                 "converged": self.state.converged,
                 "diverged": self.state.diverged}
 
@@ -933,6 +938,8 @@ class Speedometer:
                         metric_values.append((metric.short_name, metric.get()))
                         if self.auto_reset:
                             metric.reset()
+                            torch.mps.empty_cache()
+                            gc.collect()
                     logger.info(self.msg + '%s=%f ' * len(metric_values),
                                 epoch, count, samples_per_sec, tokens_per_sec, updates_per_sec, *sum(metric_values, ()))
 
