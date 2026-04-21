@@ -219,10 +219,10 @@ class DecoderStateGenerator:
 def store(args: argparse.Namespace):
     """Build a data store with an existing model and a parallel corpus."""
     use_cpu = args.use_cpu
-    if not pt.cuda.is_available():
-        logger.info("CUDA not available, using cpu")
+    if not pt.backends.mps.is_available() :
+        logger.info("MPS is  not available, using cpu")
         use_cpu = True
-    device = pt.device('cpu') if use_cpu else pt.device('cuda', args.device_id)
+    device = pt.device('cpu') if use_cpu else pt.device('mps', args.device_id)
     logger.info(f"Scoring device: {device}")
 
     model, source_vocabs, target_vocabs = load_model(args.model, device=device, dtype=args.dtype)

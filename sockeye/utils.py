@@ -804,11 +804,11 @@ def init_device(args: argparse.Namespace) -> pt.device:
     """
 
     use_cpu = args.use_cpu
-    if not use_cpu and not pt.cuda.is_available():
-        logger.info('CUDA not available, defaulting to CPU device')
+    if not use_cpu and not pt.backends.mps.is_available():
+        logger.info("MPS not available, defaulting to CPU device")
         use_cpu = True
     if use_cpu:
-        return pt.device('mps')
+        return pt.device("cpu")
 
     device = pt.device('mps', get_local_rank() if is_distributed() else args.device_id)
     # Ensure that GPU operations use the correct device by default
