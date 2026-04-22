@@ -230,7 +230,7 @@ class EarlyStoppingTrainer:
         self.device = device
         self.using_amp = using_amp
         if using_amp:
-            self._scaler = torch.cuda.amp.GradScaler()
+            self._scaler = torch.amp.GradScaler("cuda")
         self.using_apex_amp = using_apex_amp
         self.state = None  # type: Optional[TrainState]
         self._speedometer = Speedometer(
@@ -455,7 +455,7 @@ class EarlyStoppingTrainer:
         """
         batch = batch.load(device=self.device)
         with (
-            torch.cuda.amp.autocast(cache_enabled=False)
+            torch.amp.autocast("cuda", cache_enabled=False)
             if self.using_amp
             else utils.no_context()
         ):  # type: ignore
